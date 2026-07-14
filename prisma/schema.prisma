@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+}
+
+enum SellerStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String
+  phone         String?  @unique
+  role          Role     @default(CUSTOMER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sellerProfile SellerProfile?
+  addresses     Address[]
+}
+
+model SellerProfile {
+  id          String         @id @default(cuid())
+  userId      String         @unique
+  storeName   String
+  description String?
+  logo        String?
+  gstNumber   String?
+  panNumber   String?
+  status      SellerStatus   @default(PENDING)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  products Product[]
+}
+
+model Address {
+  id          String   @id @default(cuid())
+  userId      String
+  fullName    String
+  phone       String
+  addressLine String
+  city        String
+  state       String
+  country     String
+  pincode     String
+  isDefault   Boolean  @default(false)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Category {
+  id          String   @id @default(cuid())
+  name        String   @unique
+  slug        String   @unique
+  image       String?
+  description String?
+  createdAt   DateTime @default(now())
+
+  products Product[]
+}
+
+model Brand {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  logo      String?
+  createdAt DateTime @default(now())
+
+  products Product[]
+}
+
+model Product {
+  id           String    @id @default(cuid())
+  name         String
+  slug         String    @unique
+  description  String
+  price        Decimal
+  comparePrice Decimal?
+  stock        Int
+  sku          String    @unique
+  featured     Boolean   @default(false)
+  active       Boolean   @default(true)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  sellerId   String
+  categoryId String
+  brandId    String?
+
+  seller   SellerProfile @relation(fields: [sellerId], references: [id])
+  category Category      @relation(fields: [categoryId], references: [id])
+  brand    Brand?        @relation(fields: [brandId], references: [id])
+
+  images ProductImage[]
+}
+
+model ProductImage {
+  id        String   @id @default(cuid())
+  url       String
+  productId String
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+}
