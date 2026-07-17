@@ -1,27 +1,16 @@
-export type OtpPurpose = "LOGIN" | "SIGNUP" | "RESET";
+import { OtpPurpose } from "@prisma/client";
 
-export type OtpChannel = "WHATSAPP" | "SMS";
-
-export interface SendOtpDTO {
+export interface GenerateOtpPayload {
   phone: string;
   purpose: OtpPurpose;
-}
-
-export interface VerifyOtpDTO {
-  phone: string;
-  otp: string;
-  purpose: OtpPurpose;
-}
-
-export interface SessionUser {
-  id: string;
-  phone: string;
-  firstName: string;
-  lastName: string | null;
-  role: "CUSTOMER" | "SELLER" | "ADMIN";
-  phoneVerified: boolean;
 }
 
 export interface OtpProvider {
   send(phone: string, otp: string): Promise<void>;
+}
+
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message: string;
+  data?: T;
 }

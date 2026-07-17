@@ -1,30 +1,32 @@
 export class AuthError extends Error {
-  constructor(message: string) {
+  constructor(
+    message: string,
+    public readonly status = 400
+  ) {
     super(message);
-    this.name = "AuthError";
+  }
+}
+
+export class InvalidPhoneError extends AuthError {
+  constructor() {
+    super("Invalid phone number.", 400);
   }
 }
 
 export class InvalidOtpError extends AuthError {
   constructor() {
-    super("Invalid OTP.");
+    super("Invalid OTP.", 401);
   }
 }
 
 export class OtpExpiredError extends AuthError {
   constructor() {
-    super("OTP has expired.");
+    super("OTP expired.", 401);
   }
 }
 
 export class TooManyAttemptsError extends AuthError {
   constructor() {
-    super("Maximum OTP attempts exceeded.");
-  }
-}
-
-export class UserNotFoundError extends AuthError {
-  constructor() {
-    super("User not found.");
+    super("Too many attempts.", 429);
   }
 }

@@ -1,7 +1,7 @@
 import bcrypt from "bcryptjs";
 import { customAlphabet } from "nanoid";
-
 import {
+  OTP_BCRYPT_ROUNDS,
   OTP_EXPIRY_MINUTES,
   OTP_LENGTH,
 } from "../constants/auth.constants";
@@ -18,7 +18,10 @@ export function generateOtp() {
 export async function hashOtp(
   otp: string
 ) {
-  return bcrypt.hash(otp, 10);
+  return bcrypt.hash(
+    otp,
+    OTP_BCRYPT_ROUNDS
+  );
 }
 
 export async function compareOtp(
@@ -31,7 +34,7 @@ export async function compareOtp(
   );
 }
 
-export function otpExpiry() {
+export function getExpiryDate() {
   return new Date(
     Date.now() +
       OTP_EXPIRY_MINUTES *

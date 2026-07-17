@@ -2,7 +2,14 @@ import { OtpPurpose } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 
 export class AuthRepository {
-  async deletePendingOtps(phone: string, purpose: OtpPurpose) {
+  // ============================
+  // OTP
+  // ============================
+
+  async clearPendingOtp(
+    phone: string,
+    purpose: OtpPurpose
+  ) {
     return prisma.otpVerification.deleteMany({
       where: {
         phone,
@@ -29,7 +36,10 @@ export class AuthRepository {
     });
   }
 
-  async findLatestOtp(phone: string, purpose: OtpPurpose) {
+  async findLatestOtp(
+    phone: string,
+    purpose: OtpPurpose
+  ) {
     return prisma.otpVerification.findFirst({
       where: {
         phone,
@@ -42,9 +52,11 @@ export class AuthRepository {
     });
   }
 
-  async incrementAttempts(id: string) {
+  async increaseAttempts(id: string) {
     return prisma.otpVerification.update({
-      where: { id },
+      where: {
+        id,
+      },
       data: {
         attempts: {
           increment: 1,
@@ -55,7 +67,9 @@ export class AuthRepository {
 
   async markVerified(id: string) {
     return prisma.otpVerification.update({
-      where: { id },
+      where: {
+        id,
+      },
       data: {
         isVerified: true,
         verifiedAt: new Date(),
@@ -63,26 +77,54 @@ export class AuthRepository {
     });
   }
 
-  async findUserByPhone(phone: string) {
+  // ============================
+  // USER
+  // ============================
+
+  async findUser(phone: string) {
     return prisma.user.findUnique({
-      where: { phone },
+      where: {
+        phone,
+      },
     });
   }
 
-  async createUser(phone: string) {
+  async createUser(data: {
+    phone: string;
+    firstName: string;
+    lastName?: string;
+  }) {
     return prisma.user.create({
       data: {
-        phone,
-        firstName: "",
-        lastName: null,
+        phone: data.phone,
+        firstName: data.firstName,
+        lastName: data.lastName ?? null,
         phoneVerified: true,
       },
     });
   }
 
-  async verifyUserPhone(userId: string) {
+  async updateProfile(
+    userId: string,
+    firstName: string,
+    lastName?: string
+  ) {
     return prisma.user.update({
-      where: { id: userId },
+      where: {
+        id: userId,
+      },
+      data: {
+        firstName,
+        lastName: lastName ?? null,
+      },
+    });
+  }
+
+  async verifyPhone(userId: string) {
+    return prisma.user.update({
+      where: {
+        id: userId,
+      },
       data: {
         phoneVerified: true,
       },

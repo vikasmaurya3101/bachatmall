@@ -1,10 +1,7 @@
 import { BaseOtpProvider } from "./otp.provider";
 
 export class MockOtpProvider extends BaseOtpProvider {
-  async send(
-    phone: string,
-    otp: string
-  ): Promise<void> {
+  async send(phone: string, otp: string): Promise<void> {
     console.log("");
     console.log("========== MOCK OTP ==========");
     console.log(`Phone : ${phone}`);
@@ -13,3 +10,5 @@ export class MockOtpProvider extends BaseOtpProvider {
     console.log("");
   }
 }
+
+export const mockProvider = new MockOtpProvider();
