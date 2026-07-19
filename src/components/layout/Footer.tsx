@@ -8,13 +8,13 @@ export default function Footer() {
 
         <div>
 
-          <h2 className="mb-4 text-2xl font-bold text-green-600">
+          <h2 className="mb-4 text-2xl font-extrabold text-brand">
             BachatMall
           </h2>
 
           <p className="text-sm text-gray-600">
-            India's trusted multi-vendor marketplace.
-            Shop smarter. Save more.
+            Sabse Sasta, Yahi Milega — unbeatable prices on
+            quality products, delivered fast.
           </p>
 
         </div>
@@ -27,15 +27,15 @@ export default function Footer() {
 
           <div className="space-y-2 text-sm">
 
-            <Link href="/">About Us</Link>
+            <Link href="/about">About Us</Link>
 
             <br />
 
-            <Link href="/">Contact</Link>
+            <Link href="/contact">Contact</Link>
 
             <br />
 
-            <Link href="/">Careers</Link>
+            <Link href="/careers">Careers</Link>
 
           </div>
 
@@ -49,15 +49,15 @@ export default function Footer() {
 
           <div className="space-y-2 text-sm">
 
-            <Link href="/">Help Center</Link>
+            <Link href="/help">Help Center</Link>
 
             <br />
 
-            <Link href="/">Return Policy</Link>
+            <Link href="/returns">Return Policy</Link>
 
             <br />
 
-            <Link href="/">Terms</Link>
+            <Link href="/terms">Terms</Link>
 
           </div>
 

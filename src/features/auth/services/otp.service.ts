@@ -10,6 +10,36 @@ import {
 } from "../utils/otp";
 
 import { mockProvider } from "../providers/mock.provider";
+import { whatsappProvider } from "../providers/whatsapp.provider";
+import { smsProvider } from "../providers/sms.provider";
+
+/**
+ * Picks the OTP delivery provider based on process.env.OTP_PROVIDER:
+ * - "whatsapp": WhatsApp primary, falls back to SMS if it fails
+ * - "sms": SMS only
+ * - anything else (default "mock"): logs the OTP to the console (dev only)
+ */
+async function deliverOtp(phone: string, otp: string) {
+  const provider = (process.env.OTP_PROVIDER ?? "mock").toLowerCase();
+
+  if (provider === "whatsapp") {
+    try {
+      await whatsappProvider.send(phone, otp);
+      return;
+    } catch (err) {
+      console.error("WhatsApp OTP delivery failed, falling back to SMS:", err);
+      await smsProvider.send(phone, otp);
+      return;
+    }
+  }
+
+  if (provider === "sms") {
+    await smsProvider.send(phone, otp);
+    return;
+  }
+
+  await mockProvider.send(phone, otp);
+}
 
 export class OtpService {
   async sendOtp(
@@ -32,10 +62,7 @@ export class OtpService {
       expiresAt: getExpiryDate(),
     });
 
-    await mockProvider.send(
-      phone,
-      otp
-    );
+    await deliverOtp(phone, otp);
 
     return true;
   }

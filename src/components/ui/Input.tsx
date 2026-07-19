@@ -29,7 +29,7 @@ export const Input = forwardRef<
         py-3
         outline-none
         transition
-        focus:border-green-600
+        focus:border-brand
         ${className}
         `}
         {...props}

@@ -1,49 +1,87 @@
-const categories = [
-  { name: "Mobiles", icon: "📱" },
-  { name: "Fashion", icon: "👕" },
-  { name: "Electronics", icon: "💻" },
-  { name: "Home", icon: "🏠" },
-  { name: "Beauty", icon: "💄" },
-  { name: "Kitchen", icon: "🍳" },
-  { name: "Sports", icon: "⚽" },
-  { name: "Books", icon: "📚" },
+import Image from "next/image";
+import Link from "next/link";
+import {
+  Baby,
+  BookOpen,
+  Car,
+  Cpu,
+  type LucideIcon,
+  Package,
+  Salad,
+  Shirt,
+  Smartphone,
+  Sofa,
+  Sparkles,
+  Volleyball,
+} from "lucide-react";
+import { CategoryData } from "@/types/product";
+
+interface CategoryGridProps {
+  categories: CategoryData[];
+}
+
+const ICONS: Record<string, LucideIcon> = {
+  electronics: Cpu,
+  mobiles: Smartphone,
+  fashion: Shirt,
+  "home-kitchen": Sofa,
+  beauty: Sparkles,
+  grocery: Salad,
+  books: BookOpen,
+  sports: Volleyball,
+  toys: Baby,
+  automotive: Car,
+};
+
+const TINTS = [
+  { bg: "bg-brand-50", fg: "text-brand" },
+  { bg: "bg-accent-50", fg: "text-accent" },
+  { bg: "bg-amber-50", fg: "text-gold-dark" },
 ];
 
-export default function CategoryGrid() {
+export default function CategoryGrid({ categories }: CategoryGridProps) {
+  if (categories.length === 0) return null;
+
   return (
-    <section className="mx-auto max-w-7xl px-6 py-14">
+    <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
+      <h2 className="text-2xl font-bold text-gray-800 sm:text-3xl">
+        Browse Categories
+      </h2>
 
-      <div className="mb-8 flex items-center justify-between">
+      <div className="mt-6 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+        {categories.map((category, index) => {
+          const Icon = ICONS[category.slug] ?? Package;
+          const tint = TINTS[index % TINTS.length];
 
-        <h2 className="text-3xl font-bold">
-          Shop by Category
-        </h2>
+          return (
+            <Link
+              key={category.id}
+              href={`/category/${category.slug}`}
+              className="flex flex-col items-center gap-2 rounded-xl bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div
+                className={`relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full ${tint.bg}`}
+              >
+                {category.image ? (
+                  <Image
+                    src={category.image}
+                    alt={category.name}
+                    fill
+                    sizes="56px"
+                    className="object-cover"
+                  />
+                ) : (
+                  <Icon size={26} className={tint.fg} strokeWidth={2} />
+                )}
+              </div>
 
-        <button className="font-semibold text-green-600">
-          View All
-        </button>
-
+              <span className="line-clamp-2 text-xs font-medium text-gray-700 sm:text-sm">
+                {category.name}
+              </span>
+            </Link>
+          );
+        })}
       </div>
-
-      <div className="grid grid-cols-2 gap-5 md:grid-cols-4 lg:grid-cols-8">
-
-        {categories.map((category) => (
-          <button
-            key={category.name}
-            className="rounded-2xl bg-white p-6 shadow-sm transition-all hover:-translate-y-1 hover:shadow-xl"
-          >
-            <div className="text-5xl">
-              {category.icon}
-            </div>
-
-            <p className="mt-4 font-semibold">
-              {category.name}
-            </p>
-          </button>
-        ))}
-
-      </div>
-
     </section>
   );
 }

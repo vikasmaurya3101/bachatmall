@@ -10,12 +10,12 @@ export default function Badge({
       className="
       inline-flex
       rounded-full
-      bg-green-100
+      bg-brand-100
       px-3
       py-1
       text-xs
       font-semibold
-      text-green-700
+      text-brand-dark
     "
     >
       {children}

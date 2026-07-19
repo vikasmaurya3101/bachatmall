@@ -10,7 +10,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 
 const styles: Record<Variant, string> = {
   primary:
-    "bg-green-600 hover:bg-green-700 text-white border-green-600",
+    "bg-brand hover:bg-brand-dark text-white border-brand",
 
   secondary:
     "bg-gray-900 hover:bg-black text-white border-gray-900",
@@ -44,7 +44,7 @@ export const Button = forwardRef<
         disabled={disabled || loading}
         className={`
         h-11
-        rounded-lg
+        rounded-xl
         border
         px-5
         font-medium

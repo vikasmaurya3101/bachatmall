@@ -1,0 +1,24 @@
+export function calculateDiscountPercentage(
+  mrp: number,
+  sellingPrice: number
+): number {
+  if (mrp <= 0) return 0;
+
+  return Math.round(
+    ((mrp - sellingPrice) / mrp) * 100
+  );
+}
+
+export function calculateSaving(
+  mrp: number,
+  sellingPrice: number
+): number {
+  return Math.max(0, mrp - sellingPrice);
+}
+
+export function hasDiscount(
+  mrp: number,
+  sellingPrice: number
+): boolean {
+  return sellingPrice < mrp;
+}

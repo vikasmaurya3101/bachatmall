@@ -52,6 +52,26 @@ export async function seedBrands(prisma: PrismaClient) {
     "Allen Solly",
     "US Polo",
     "Campus",
+
+    // Additional brands used in seed products
+    "Barbie",
+    "Biba",
+    "Cadbury",
+    "FunBlast",
+    "Ganesh",
+    "Generic",
+    "Himalaya",
+    "Lavie",
+    "Mattel",
+    "Maybelline",
+    "Noise",
+    "Skillmatics",
+    "Spaces",
+    "Tata Sampann",
+    "Tata Tea",
+    "Tickles",
+    "Titan",
+    "Toyshine",
   ];
 
   for (const brand of brands) {

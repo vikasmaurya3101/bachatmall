@@ -1,8 +1,29 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #fffbfd;
+  --foreground: #201422;
+
+  /* Brand — vibrant pink/magenta, Meesho/Myntra-style */
+  --color-brand-50: #fdf2f8;
+  --color-brand-100: #fce7f3;
+  --color-brand-400: #ec4899;
+  --color-brand: #d6266f;
+  --color-brand-dark: #a3184f;
+
+  /* Accent — violet, pairs with brand for gradients */
+  --color-accent-50: #f5f3ff;
+  --color-accent-100: #ede9fe;
+  --color-accent: #7c3aed;
+  --color-accent-dark: #5b21b6;
+
+  /* Warm accent — gold, for ratings / urgency / discount badges */
+  --color-gold: #ffb100;
+  --color-gold-dark: #e09400;
+
+  /* Reserved strictly for stock/success semantics, never brand actions */
+  --color-success: #16a34a;
+  --color-success-light: #dcfce7;
 }
 
 @theme inline {
@@ -10,17 +31,40 @@
   --color-foreground: var(--foreground);
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
-}
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+  --color-brand-50: var(--color-brand-50);
+  --color-brand-100: var(--color-brand-100);
+  --color-brand-400: var(--color-brand-400);
+  --color-brand: var(--color-brand);
+  --color-brand-dark: var(--color-brand-dark);
+
+  --color-accent-50: var(--color-accent-50);
+  --color-accent-100: var(--color-accent-100);
+  --color-accent: var(--color-accent);
+  --color-accent-dark: var(--color-accent-dark);
+
+  --color-gold: var(--color-gold);
+  --color-gold-dark: var(--color-gold-dark);
+
+  --color-success: var(--color-success);
+  --color-success-light: var(--color-success-light);
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
+}
+
+/* Signature glow used on primary CTAs and hovered product cards */
+.brand-glow {
+  box-shadow: 0 8px 24px -8px rgba(214, 38, 111, 0.45);
+}
+
+.brand-gradient {
+  background-image: linear-gradient(
+    135deg,
+    var(--color-brand) 0%,
+    var(--color-accent) 100%
+  );
 }

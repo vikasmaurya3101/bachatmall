@@ -1,4 +1,10 @@
-import { PrismaClient, Prisma } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";
+import {
+  calculateDiscount,
+  random,
+  randomBoolean,
+  randomRating,
+} from "./helpers";
 
 type ProductSeed = {
   name: string;
@@ -1878,3 +1884,140 @@ const products: ProductSeed[] = [
       "organizer"
     ]
   },
+];
+
+// Maps the loose "category" labels used above (some are really
+// subcategory-level labels) to the actual top-level Category slugs
+// seeded in prisma/seed/categories.ts, plus an optional matching
+// SubCategory slug from prisma/seed/subcategories.ts when one exists.
+const CATEGORY_MAP: Record<
+  string,
+  { category: string; subCategory?: string }
+> = {
+  Accessories: { category: "electronics" },
+  "Bathroom Accessories": { category: "home-kitchen" },
+  "Beauty & Personal Care": { category: "beauty" },
+  "Car Accessories": {
+    category: "automotive",
+    subCategory: "car-accessories",
+  },
+  "Cleaning Supplies": { category: "home-kitchen" },
+  Footwear: { category: "fashion" },
+  Grocery: { category: "grocery" },
+  Headphones: { category: "electronics" },
+  "Home & Kitchen": { category: "home-kitchen" },
+  "Home Furnishing": {
+    category: "home-kitchen",
+    subCategory: "home-decor",
+  },
+  "Home Storage": { category: "home-kitchen" },
+  "Home Utility": { category: "home-kitchen" },
+  Kitchen: { category: "home-kitchen" },
+  Laptops: { category: "electronics", subCategory: "laptops" },
+  Lighting: { category: "home-kitchen" },
+  "Men Fashion": { category: "fashion", subCategory: "men" },
+  Mobiles: { category: "mobiles", subCategory: "smartphones" },
+  "Smart Watches": { category: "electronics" },
+  Toys: { category: "toys" },
+  Watches: { category: "fashion" },
+  "Women Fashion": { category: "fashion", subCategory: "women" },
+};
+
+function brandSlug(name: string) {
+  return name.toLowerCase().replace(/\s+/g, "-");
+}
+
+export async function seedProducts(prisma: PrismaClient) {
+  const categories = await prisma.category.findMany();
+  const subCategories = await prisma.subCategory.findMany();
+  const brands = await prisma.brand.findMany();
+
+  const categoryBySlug = new Map(
+    categories.map((c) => [c.slug, c.id])
+  );
+
+  const subCategoryBySlug = new Map(
+    subCategories.map((s) => [s.slug, s.id])
+  );
+
+  const brandBySlug = new Map(
+    brands.map((b) => [b.slug, b.id])
+  );
+
+  let created = 0;
+  let skipped = 0;
+
+  for (const product of products) {
+    const mapping = CATEGORY_MAP[product.category];
+
+    if (!mapping) {
+      console.warn(
+        `⚠️  Unknown category "${product.category}" for product "${product.name}" — skipping`
+      );
+      skipped++;
+      continue;
+    }
+
+    const categoryId = categoryBySlug.get(mapping.category);
+
+    if (!categoryId) {
+      console.warn(
+        `⚠️  Category slug "${mapping.category}" not found — skipping "${product.name}"`
+      );
+      skipped++;
+      continue;
+    }
+
+    const subCategoryId = mapping.subCategory
+      ? subCategoryBySlug.get(mapping.subCategory) ?? null
+      : null;
+
+    const brandId =
+      brandBySlug.get(brandSlug(product.brand)) ?? null;
+
+    await prisma.product.upsert({
+      where: { slug: product.slug },
+      update: {},
+      create: {
+        name: product.name,
+        slug: product.slug,
+        description: product.description,
+        shortDescription: product.shortDescription,
+        sku: product.sku,
+        categoryId,
+        subCategoryId,
+        brandId,
+        mrp: product.mrp,
+        sellingPrice: product.sellingPrice,
+        discountPercent: calculateDiscount(
+          product.mrp,
+          product.sellingPrice
+        ),
+        taxPercent: product.gst,
+        stock: product.stock,
+        minOrderQuantity: product.minOrderQty,
+        isFeatured: randomBoolean(20),
+        isTrending: randomBoolean(20),
+        isBestSeller: randomBoolean(20),
+        isNewArrival: randomBoolean(25),
+        isPublished: true,
+        avgRating: randomRating(),
+        totalReviews: random(0, 350),
+        images: {
+          create: product.images.map((url, index) => ({
+            url,
+            altText: `${product.name} image ${index + 1}`,
+            isThumbnail: index === 0,
+            displayOrder: index,
+          })),
+        },
+      },
+    });
+
+    created++;
+  }
+
+  console.log(
+    `✅ Products Seeded (${created} created/updated, ${skipped} skipped)`
+  );
+}

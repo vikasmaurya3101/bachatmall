@@ -15,6 +15,7 @@ export class AuthService {
     await createSession({
       userId: user.id,
       phone: user.phone,
+      role: user.role,
     });
 
     return {
@@ -45,6 +46,7 @@ export class AuthService {
     await createSession({
       userId: user.id,
       phone: user.phone,
+      role: user.role,
     });
 
     return user;

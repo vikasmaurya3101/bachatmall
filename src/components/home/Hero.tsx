@@ -1,45 +1,36 @@
-import { Button } from "@/components/ui/Button";
+import Link from "next/link";
+import { Sparkles } from "lucide-react";
 
 export default function Hero() {
   return (
-    <section className="bg-gradient-to-r from-green-600 via-green-500 to-emerald-500">
-      <div className="mx-auto flex min-h-[500px] max-w-7xl items-center justify-between px-6 py-16">
+    <section className="relative overflow-hidden brand-gradient py-16 text-white sm:py-24">
+      {/* Decorative blurred blobs — signature element */}
+      <div className="pointer-events-none absolute -top-16 -right-10 h-72 w-72 rounded-full bg-white/10 blur-3xl" />
+      <div className="pointer-events-none absolute -bottom-24 left-10 h-72 w-72 rounded-full bg-brand-400/30 blur-3xl" />
 
-        <div className="max-w-2xl text-white">
+      <div className="relative mx-auto max-w-7xl px-4 sm:px-6">
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/15 px-3 py-1 text-xs font-semibold tracking-wide backdrop-blur">
+          <Sparkles size={14} className="fill-gold text-gold" />
+          UP TO 80% OFF · TODAY ONLY
+        </span>
 
-          <p className="mb-4 rounded-full bg-white/20 px-4 py-2 inline-block">
-            🇮🇳 India's Smart Marketplace
-          </p>
+        <h1 className="mt-5 max-w-2xl text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
+          Sabse Sasta,
+          <br />
+          Yahi Milega.
+        </h1>
 
-          <h1 className="text-5xl font-bold leading-tight lg:text-6xl">
-            Shop Smarter.
-            <br />
-            Save Bigger.
-          </h1>
+        <p className="mt-6 max-w-xl text-base text-white/85 sm:text-lg">
+          Unbeatable prices, handpicked quality, and fast delivery —
+          straight to your door, every single day.
+        </p>
 
-          <p className="mt-6 text-lg text-green-50">
-            Discover thousands of products from trusted sellers
-            across India at unbeatable prices.
-          </p>
-
-          <div className="mt-10 flex gap-4">
-            <Button>
-              Shop Now
-            </Button>
-
-            <Button variant="outline">
-              Become Seller
-            </Button>
-          </div>
-
-        </div>
-
-        <div className="hidden lg:flex items-center justify-center">
-          <div className="flex h-96 w-96 items-center justify-center rounded-full bg-white/20 text-9xl backdrop-blur">
-            🛍️
-          </div>
-        </div>
-
+        <Link
+          href="/search"
+          className="brand-glow mt-10 inline-block rounded-full bg-white px-9 py-3.5 font-bold text-brand-dark transition hover:scale-[1.03] hover:bg-brand-50"
+        >
+          Shop Now
+        </Link>
       </div>
     </section>
   );

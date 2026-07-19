@@ -1,61 +1,68 @@
-import ProductCard from "./ProductCard";
+"use client";
 
-const flashProducts = Array.from({ length: 4 }).map(
-  (_, i) => ({
-    id: String(i),
-    name: `Flash Deal ${i + 1}`,
-    seller: "Flash Seller",
-    price: 599 + i * 100,
-    originalPrice: 999 + i * 150,
-    rating: 4.8,
-  })
-);
+import { useEffect, useState } from "react";
+import { Zap } from "lucide-react";
+import { ProductCardData } from "@/types/product";
+import ProductGrid from "@/components/product/ProductGrid";
 
-export default function FlashSale() {
+function getEndOfDay() {
+  const end = new Date();
+  end.setHours(23, 59, 59, 999);
+  return end;
+}
+
+function useCountdown() {
+  const [remaining, setRemaining] = useState(0);
+
+  useEffect(() => {
+    const end = getEndOfDay();
+
+    function tick() {
+      setRemaining(Math.max(0, end.getTime() - Date.now()));
+    }
+
+    tick();
+    const interval = setInterval(tick, 1000);
+    return () => clearInterval(interval);
+  }, []);
+
+  const hours = Math.floor(remaining / 3600000);
+  const minutes = Math.floor((remaining % 3600000) / 60000);
+  const seconds = Math.floor((remaining % 60000) / 1000);
+
+  return { hours, minutes, seconds };
+}
+
+export default function FlashSale({
+  products,
+}: {
+  products: ProductCardData[];
+}) {
+  const { hours, minutes, seconds } = useCountdown();
+
+  if (products.length === 0) return null;
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+
   return (
-    <section className="bg-red-50 py-16">
-
-      <div className="mx-auto max-w-7xl px-6">
-
-        <div className="mb-10 flex items-center justify-between">
-
-          <div>
-
-            <h2 className="text-3xl font-bold text-red-600">
-
-              ⚡ Flash Sale
-
+    <section className="bg-brand-50/40 py-8">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6">
+        <div className="brand-glow mb-5 flex flex-wrap items-center justify-between gap-3 rounded-2xl brand-gradient px-5 py-4 text-white">
+          <div className="flex items-center gap-2">
+            <Zap size={24} className="fill-gold text-gold" />
+            <h2 className="text-2xl font-extrabold sm:text-3xl">
+              Flash Sale
             </h2>
-
-            <p className="mt-2 text-gray-600">
-
-              Limited time offers. Grab them before they are gone.
-
-            </p>
-
           </div>
 
-          <button className="font-semibold text-red-600">
-            View All
-          </button>
-
+          <div className="flex items-center gap-1 rounded-full bg-black/20 px-4 py-1.5 font-mono text-sm font-semibold">
+            <span>{pad(hours)}</span>:<span>{pad(minutes)}</span>:
+            <span>{pad(seconds)}</span>
+          </div>
         </div>
 
-        <div className="grid gap-7 sm:grid-cols-2 lg:grid-cols-4">
-
-          {flashProducts.map((product) => (
-
-            <ProductCard
-              key={product.id}
-              {...product}
-            />
-
-          ))}
-
-        </div>
-
+        <ProductGrid products={products} />
       </div>
-
     </section>
   );
 }

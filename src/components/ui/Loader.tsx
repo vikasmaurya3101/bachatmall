@@ -1,5 +1,6 @@
 interface LoaderProps {
   size?: "sm" | "md" | "lg";
+  className?: string;
 }
 
 const sizes = {
@@ -10,13 +11,15 @@ const sizes = {
 
 export default function Loader({
   size = "md",
+  className = "",
 }: LoaderProps) {
   return (
-    <div className="flex items-center justify-center py-6">
+    <div className={`flex items-center justify-center py-6 ${className}`}>
       <div
-        className={`
-          ${sizes[size]}
-          animate-spin
-          rounded-full
-          border-green-600
-          border
+        className={`${sizes[size]} animate-spin rounded-full border-brand border-t-transparent`}
+        role="status"
+        aria-label="Loading"
+      />
+    </div>
+  );
+}

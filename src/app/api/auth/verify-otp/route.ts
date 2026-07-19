@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { otpService } from "@/features/auth/services/otp.service";
 import { authRepository } from "@/features/auth/repositories/auth.repository";
+import { createSession } from "@/lib/session";
 
 export async function POST(request: NextRequest) {
   try {
@@ -35,6 +36,12 @@ export async function POST(request: NextRequest) {
           "OTP verified. Complete your profile.",
       });
     }
+
+    await createSession({
+      userId: user.id,
+      phone: user.phone,
+      role: user.role,
+    });
 
     return NextResponse.json({
       success: true,

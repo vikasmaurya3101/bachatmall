@@ -1,7 +1,9 @@
 "use server";
 
-import { productService } from "@/features/products/services/product.service";
+import { productService } from "@/features/products/service/product.service";
+import { serializeData } from "@/lib/serialize";
 
 export async function getHomeData() {
-  return await productService.getHomePageData();
+  const data = await productService.getHomeData();
+  return serializeData(data);
 }

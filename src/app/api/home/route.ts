@@ -1,10 +1,9 @@
 import { NextResponse } from "next/server";
-import { productService } from "@/features/products/services/product.service";
+import productService from "@/features/products/service/product.service";
 
 export async function GET() {
   try {
-    const data =
-      await productService.getHomePageData();
+    const data = await productService.getHomeData();
 
     return NextResponse.json({
       success: true,

@@ -1,0 +1,43 @@
+import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/session";
+import checkoutService from "@/features/checkout/service/checkout.service";
+import { CheckoutDto } from "@/features/checkout/dto/checkout.dto";
+
+export async function POST(request: NextRequest) {
+  const session = await getSession();
+
+  if (!session) {
+    return NextResponse.json(
+      { success: false, message: "Login required." },
+      { status: 401 }
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const data = CheckoutDto.parse(body);
+
+    const order = await checkoutService.placeOrder(
+      session.userId,
+      data.addressId,
+      data.paymentMethod
+    );
+
+    return NextResponse.json({
+      success: true,
+      message: "Order placed successfully.",
+      data: order,
+    });
+  } catch (error) {
+    console.error(error);
+
+    return NextResponse.json(
+      {
+        success: false,
+        message:
+          error instanceof Error ? error.message : "Unable to place order.",
+      },
+      { status: 400 }
+    );
+  }
+}
