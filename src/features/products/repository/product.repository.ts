@@ -14,7 +14,7 @@ class ProductRepository {
         displayOrder: "asc",
       },
     },
-  };
+  } satisfies Prisma.ProductInclude;
 
   private buildWhere(
     filters: ProductFilters
