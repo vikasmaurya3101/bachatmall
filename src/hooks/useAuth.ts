@@ -7,7 +7,7 @@ import {
   RecaptchaVerifier,
   signInWithPhoneNumber,
 } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import { useSession } from "@/providers/SessionProvider";
 
 interface ApiResult<T = unknown> {
@@ -168,7 +168,7 @@ export function useAuth() {
 
       if (!recaptchaRef.current) {
         recaptchaRef.current = new RecaptchaVerifier(
-          auth,
+          getFirebaseAuth(),
           "firebase-recaptcha-container",
           { size: "invisible" }
         );
@@ -177,7 +177,7 @@ export function useAuth() {
       const e164 = phone.startsWith("+") ? phone : `+91${phone}`;
 
       const confirmation = await signInWithPhoneNumber(
-        auth,
+        getFirebaseAuth(),
         e164,
         recaptchaRef.current
       );

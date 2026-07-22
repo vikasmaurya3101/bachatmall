@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { RecaptchaVerifier } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 
 declare global {
   interface Window {
@@ -15,7 +15,7 @@ export default function RecaptchaContainer() {
     if (typeof window === "undefined") return;
 
     if (!window.recaptchaVerifier) {
-      window.recaptchaVerifier = new RecaptchaVerifier(auth, "recaptcha-container", {
+      window.recaptchaVerifier = new RecaptchaVerifier(getFirebaseAuth(), "recaptcha-container", {
         size: "invisible",
         callback: () => {
           // reCAPTCHA solved automatically

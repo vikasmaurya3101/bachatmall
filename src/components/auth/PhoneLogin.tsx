@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { signInWithPhoneNumber, ConfirmationResult } from "firebase/auth";
-import { auth } from "@/lib/firebase";
+import { getFirebaseAuth } from "@/lib/firebase";
 import RecaptchaContainer from "./RecaptchaVerifier";
 
 interface PhoneLoginProps {
@@ -32,7 +32,7 @@ export default function PhoneLogin({
       }
 
       const confirmation = await signInWithPhoneNumber(
-        auth,
+       getFirebaseAuth(),
         phone,
         appVerifier
       );
