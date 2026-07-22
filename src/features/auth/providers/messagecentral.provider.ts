@@ -5,12 +5,11 @@
  * containing an OTP *we* generated), Message Central generates and
  * validates the OTP on their end via a two-step verification API. This
  * is the specific product of theirs that's exempt from India's DLT
- * registration requirement.
+ * registration requirement — a plain custom/branded SMS send would still
+ * need it (that one requires a senderId + DLT template/entity).
  *
- * Params below are matched exactly to Message Central's current
- * "VerifyNow — A Quick Onboarding Guide" PDF (2026) — earlier attempts
- * that included `customerId` and `type=SMS` on the /send call hit their
- * old/discontinued platform instead. See MESSAGECENTRAL_SETUP.md.
+ * Docs: MessageNow / VerifyNow SMS API (Message Central dashboard).
+ * See MESSAGECENTRAL_SETUP.md for how to get credentials.
  */
 
 const BASE_URL = "https://cpaas.messagecentral.com";
@@ -22,7 +21,9 @@ const TOKEN_TTL_MS = 1000 * 60 * 60 * 6; // refresh every 6h to be safe
  * Returns a usable authToken. If MESSAGECENTRAL_AUTH_TOKEN is set (the
  * ready-made token from the dashboard's Developer Guide), that's used
  * directly. Otherwise, if MESSAGECENTRAL_CUSTOMER_ID + _PASSWORD are set,
- * a fresh token is generated (and cached) via Message Central's token API.
+ * a fresh token is generated (and cached) via Message Central's token API
+ * — this is the officially documented fallback for when the dashboard
+ * token expires.
  */
 async function getAuthToken(): Promise<string> {
   const staticToken = process.env.MESSAGECENTRAL_AUTH_TOKEN;
@@ -57,7 +58,7 @@ async function getAuthToken(): Promise<string> {
   });
 
   const json = await response.json().catch(() => null);
-  const token = json?.token ?? json?.data?.token ?? json?.authToken;
+  const token = json?.token ?? json?.data?.token;
 
   if (!response.ok || !token) {
     throw new Error(
@@ -70,18 +71,37 @@ async function getAuthToken(): Promise<string> {
   return token;
 }
 
+function getCustomerId(): string {
+  const customerId = process.env.MESSAGECENTRAL_CUSTOMER_ID;
+
+  if (!customerId) {
+    throw new Error(
+      "MESSAGECENTRAL_CUSTOMER_ID isn't set — see MESSAGECENTRAL_SETUP.md."
+    );
+  }
+
+  return customerId;
+}
+
 export const messageCentralProvider = {
   /**
    * Asks Message Central to generate and send an OTP to the given
    * 10-digit Indian mobile number. Returns their verificationId, which
    * must be passed back into verifyOtp() to check the code later.
+   *
+   * Deliberately omits senderId/message/messageType — leaving those out
+   * keeps this on their default system-generated OTP route, which is the
+   * one that doesn't require DLT registration. Adding a custom senderId
+   * or message shifts it toward their branded-SMS product, which does.
    */
   async sendOtp(phone: string): Promise<string> {
     const authToken = await getAuthToken();
+    const customerId = getCustomerId();
 
     const url =
       `${BASE_URL}/verification/v3/send` +
-      `?countryCode=91&flowType=SMS&mobileNumber=${encodeURIComponent(phone)}` +
+      `?countryCode=91&customerId=${encodeURIComponent(customerId)}` +
+      `&flowType=SMS&type=SMS&mobileNumber=${encodeURIComponent(phone)}` +
       `&otpLength=6`;
 
     const response = await fetch(url, {
