@@ -12,15 +12,22 @@ import {
 import { mockProvider } from "../providers/mock.provider";
 import { whatsappProvider } from "../providers/whatsapp.provider";
 import { smsProvider } from "../providers/sms.provider";
+import { messageCentralProvider } from "../providers/messagecentral.provider";
 
 /**
  * Picks the OTP delivery provider based on process.env.OTP_PROVIDER:
+ * - "messagecentral": Message Central VerifyNow (generates + validates the
+ *   OTP on their end — no DLT registration needed, unlike a plain SMS API)
  * - "whatsapp": WhatsApp primary, falls back to SMS if it fails
  * - "sms": SMS only
  * - anything else (default "mock"): logs the OTP to the console (dev only)
  */
+function currentProvider() {
+  return (process.env.OTP_PROVIDER ?? "mock").toLowerCase();
+}
+
 async function deliverOtp(phone: string, otp: string) {
-  const provider = (process.env.OTP_PROVIDER ?? "mock").toLowerCase();
+  const provider = currentProvider();
 
   if (provider === "whatsapp") {
     try {
@@ -42,18 +49,27 @@ async function deliverOtp(phone: string, otp: string) {
 }
 
 export class OtpService {
-  async sendOtp(
-    phone: string,
-    purpose: OtpPurpose
-  ) {
+  async sendOtp(phone: string, purpose: OtpPurpose) {
+    await authRepository.clearPendingOtp(phone, purpose);
+
+    if (currentProvider() === "messagecentral") {
+      // Message Central generates its own OTP — we just keep a record of
+      // their verificationId (reusing the otpHash column) so verifyOtp()
+      // knows which verification to check against.
+      const verificationId = await messageCentralProvider.sendOtp(phone);
+
+      await authRepository.createOtp({
+        phone,
+        otpHash: verificationId,
+        purpose,
+        expiresAt: getExpiryDate(),
+      });
+
+      return true;
+    }
+
     const otp = generateOtp();
-
     const otpHash = await hashOtp(otp);
-
-    await authRepository.clearPendingOtp(
-      phone,
-      purpose
-    );
 
     await authRepository.createOtp({
       phone,
@@ -67,16 +83,8 @@ export class OtpService {
     return true;
   }
 
-  async verifyOtp(
-    phone: string,
-    otp: string,
-    purpose: OtpPurpose
-  ) {
-    const record =
-      await authRepository.findLatestOtp(
-        phone,
-        purpose
-      );
+  async verifyOtp(phone: string, otp: string, purpose: OtpPurpose) {
+    const record = await authRepository.findLatestOtp(phone, purpose);
 
     if (!record) {
       throw new Error("OTP not found");
@@ -90,26 +98,23 @@ export class OtpService {
       throw new Error("Maximum attempts exceeded");
     }
 
-    const valid = await compareOtp(
-      otp,
-      record.otpHash
-    );
+    let valid: boolean;
+
+    if (currentProvider() === "messagecentral") {
+      valid = await messageCentralProvider.verifyOtp(record.otpHash, otp);
+    } else {
+      valid = await compareOtp(otp, record.otpHash);
+    }
 
     if (!valid) {
-      await authRepository.increaseAttempts(
-        record.id
-      );
-
+      await authRepository.increaseAttempts(record.id);
       throw new Error("Invalid OTP");
     }
 
-    await authRepository.markVerified(
-      record.id
-    );
+    await authRepository.markVerified(record.id);
 
     return true;
   }
 }
 
-export const otpService =
-  new OtpService();
+export const otpService = new OtpService();

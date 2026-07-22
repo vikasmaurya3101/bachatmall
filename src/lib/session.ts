@@ -10,7 +10,7 @@ const SESSION_DAYS = 30;
 
 export interface SessionPayload extends JWTPayload {
   userId: string;
-  phone: string;
+  phone: string | null;
   role: "CUSTOMER" | "SELLER" | "ADMIN";
 }
 

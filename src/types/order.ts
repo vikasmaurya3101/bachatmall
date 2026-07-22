@@ -43,6 +43,8 @@ export interface AddressData {
   completeAddress: string;
   type: AddressType;
   isDefault: boolean;
+  latitude: number | null;
+  longitude: number | null;
 }
 
 export interface OrderItemData {

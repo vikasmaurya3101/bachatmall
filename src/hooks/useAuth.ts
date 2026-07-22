@@ -1,7 +1,13 @@
 "use client";
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import {
+  ConfirmationResult,
+  RecaptchaVerifier,
+  signInWithPhoneNumber,
+} from "firebase/auth";
+import { auth } from "@/lib/firebase";
 import { useSession } from "@/providers/SessionProvider";
 
 interface ApiResult<T = unknown> {
@@ -24,9 +30,38 @@ async function postJson<T = unknown>(
   return res.json();
 }
 
+function firebaseErrorMessage(raw: string): string {
+  if (raw.includes("auth/invalid-phone-number"))
+    return "Enter a valid 10-digit mobile number.";
+  if (raw.includes("auth/too-many-requests"))
+    return "Too many attempts. Please wait a bit and try again.";
+  if (raw.includes("auth/invalid-verification-code"))
+    return "That OTP doesn't look right. Please check and try again.";
+  if (raw.includes("auth/code-expired"))
+    return "This OTP has expired. Please request a new one.";
+  if (raw.includes("auth/network-request-failed"))
+    return "Network error. Please check your connection and try again.";
+  if (raw.includes("auth/api-key-not-valid") || raw.includes("auth/invalid-api-key"))
+    return "Phone login isn't configured yet. Please contact support.";
+  return "Something went wrong. Please try again.";
+}
+
+interface SessionUserResult {
+  id: string;
+  phone: string | null;
+  email: string | null;
+  firstName: string | null;
+  lastName: string | null;
+  role: "CUSTOMER" | "SELLER" | "ADMIN";
+  phoneVerified: boolean;
+}
+
 /**
- * Client hook wrapping the app's phone + OTP authentication flow:
- * sendOtp -> verifyOtp -> (completeProfile if new user) -> logout
+ * Client hook wrapping the app's authentication flows:
+ * - Phone + OTP: sendOtp -> verifyOtp -> (completeProfile if new user)
+ * - Google: loginWithGoogle (full-page redirect) -> addPhone if the
+ *   account doesn't have one yet
+ * - logout for both
  */
 export function useAuth() {
   const { user, isAuthenticated, isLoading, refresh, setUser } =
@@ -59,14 +94,10 @@ export function useAuth() {
       setError(null);
 
       try {
-        const result = await postJson<{
-          id: string;
-          phone: string;
-          firstName: string | null;
-          lastName: string | null;
-          role: "CUSTOMER" | "SELLER" | "ADMIN";
-          phoneVerified: boolean;
-        }>("/api/auth/verify-otp", { phone, otp });
+        const result = await postJson<SessionUserResult>(
+          "/api/auth/verify-otp",
+          { phone, otp }
+        );
 
         if (!result.success) {
           setError(result.message ?? "Invalid OTP.");
@@ -92,6 +123,7 @@ export function useAuth() {
       phone: string;
       firstName: string;
       lastName?: string;
+      email?: string;
     }) => {
       setIsSubmitting(true);
       setError(null);
@@ -117,6 +149,162 @@ export function useAuth() {
     [refresh]
   );
 
+  const confirmationRef = useRef<ConfirmationResult | null>(null);
+  const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
+
+  /**
+   * Sends a real SMS OTP via Firebase Phone Auth to the given 10-digit
+   * Indian mobile number. Needs an invisible reCAPTCHA container with
+   * id="firebase-recaptcha-container" mounted in the page.
+   */
+  const firebaseSendOtp = useCallback(async (phone: string) => {
+    setIsSubmitting(true);
+    setError(null);
+
+    try {
+      if (typeof window === "undefined") {
+        return { success: false, message: "Not available." };
+      }
+
+      if (!recaptchaRef.current) {
+        recaptchaRef.current = new RecaptchaVerifier(
+          auth,
+          "firebase-recaptcha-container",
+          { size: "invisible" }
+        );
+      }
+
+      const e164 = phone.startsWith("+") ? phone : `+91${phone}`;
+
+      const confirmation = await signInWithPhoneNumber(
+        auth,
+        e164,
+        recaptchaRef.current
+      );
+
+      confirmationRef.current = confirmation;
+
+      return { success: true };
+    } catch (err) {
+      const message =
+        err instanceof Error
+          ? firebaseErrorMessage(err.message)
+          : "Unable to send OTP. Please try again.";
+      setError(message);
+      return { success: false, message };
+    } finally {
+      setIsSubmitting(false);
+    }
+  }, []);
+
+  /** Confirms the OTP with Firebase, then syncs the account with our backend. */
+  const firebaseVerifyOtp = useCallback(
+    async (otp: string) => {
+      setIsSubmitting(true);
+      setError(null);
+
+      try {
+        if (!confirmationRef.current) {
+          const message = "Please request a new OTP.";
+          setError(message);
+          return { success: false, message };
+        }
+
+        const result = await confirmationRef.current.confirm(otp);
+        const idToken = await result.user.getIdToken();
+
+        const apiResult = await postJson<SessionUserResult>(
+          "/api/auth/firebase",
+          { idToken }
+        );
+
+        if (!apiResult.success) {
+          setError(apiResult.message ?? "Invalid OTP.");
+          return apiResult;
+        }
+
+        if (!apiResult.isNewUser && apiResult.data) {
+          setUser(apiResult.data);
+        } else {
+          await refresh();
+        }
+
+        return apiResult;
+      } catch (err) {
+        const message =
+          err instanceof Error
+            ? firebaseErrorMessage(err.message)
+            : "Invalid OTP. Please try again.";
+        setError(message);
+        return { success: false, message };
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [refresh, setUser]
+  );
+
+  /** Completes profile setup for a brand-new Firebase phone login. */
+  const firebaseCompleteProfile = useCallback(
+    async (data: { firstName: string; lastName?: string; email?: string }) => {
+      setIsSubmitting(true);
+      setError(null);
+
+      try {
+        const result = await postJson<SessionUserResult>(
+          "/api/auth/firebase-complete-profile",
+          data
+        );
+
+        if (!result.success) {
+          setError(result.message ?? "Unable to complete profile.");
+          return result;
+        }
+
+        await refresh();
+
+        return result;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [refresh]
+  );
+
+  /** Starts the Google OAuth flow via a full-page redirect. */
+  const loginWithGoogle = useCallback((redirectTo = "/") => {
+    window.location.href = `/api/auth/google?redirect=${encodeURIComponent(
+      redirectTo
+    )}`;
+  }, []);
+
+  /** Attaches and verifies a phone number on the current (logged-in) account. */
+  const addPhone = useCallback(
+    async (phone: string, otp: string) => {
+      setIsSubmitting(true);
+      setError(null);
+
+      try {
+        const result = await postJson<SessionUserResult>(
+          "/api/auth/add-phone",
+          { phone, otp }
+        );
+
+        if (!result.success) {
+          setError(result.message ?? "Unable to verify phone number.");
+          return result;
+        }
+
+        if (result.data) setUser(result.data);
+
+        return result;
+      } finally {
+        setIsSubmitting(false);
+      }
+    },
+    [setUser]
+  );
+
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });
     setUser(null);
@@ -133,6 +321,11 @@ export function useAuth() {
     sendOtp,
     verifyOtp,
     completeProfile,
+    firebaseSendOtp,
+    firebaseVerifyOtp,
+    firebaseCompleteProfile,
+    loginWithGoogle,
+    addPhone,
     logout,
   };
 }

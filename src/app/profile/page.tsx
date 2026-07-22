@@ -2,7 +2,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { LogOut, MapPin, Package, User as UserIcon } from "lucide-react";
+import {
+  AlertCircle,
+  ChevronRight,
+  LogOut,
+  MapPin,
+  Package,
+  User as UserIcon,
+} from "lucide-react";
 import { useSession } from "@/providers/SessionProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { AddressData } from "@/types/order";
@@ -59,58 +66,95 @@ export default function ProfilePage() {
             <h1 className="text-xl font-bold text-gray-800">
               {user.firstName} {user.lastName ?? ""}
             </h1>
-            <p className="text-sm text-gray-500">+91 {user.phone}</p>
+            {user.phone && (
+              <p className="text-sm text-gray-500">+91 {user.phone}</p>
+            )}
+            {user.email && (
+              <p className="text-sm text-gray-500">{user.email}</p>
+            )}
           </div>
         </div>
+
+        {!user.phone && (
+          <Link
+            href="/add-phone?redirect=/profile"
+            className="mb-6 flex items-center gap-3 rounded-xl border-2 border-brand-100 bg-brand-50/40 p-4 transition hover:bg-brand-50"
+          >
+            <AlertCircle size={20} className="shrink-0 text-brand" />
+            <div>
+              <p className="text-sm font-semibold text-brand-dark">
+                Add your phone number
+              </p>
+              <p className="text-xs text-gray-500">
+                Needed for order updates and faster login next time.
+              </p>
+            </div>
+          </Link>
+        )}
 
         <div className="grid gap-4 sm:grid-cols-2">
           <Link
             href="/orders"
-            className="flex items-center gap-3 rounded-xl border bg-white p-5 hover:shadow-md"
+            className="tap-shrink group flex items-center gap-3 rounded-xl border bg-white p-5 transition hover:shadow-md"
           >
             <Package size={22} className="text-brand" />
-            <div>
+            <div className="flex-1">
               <p className="font-medium text-gray-800">My Orders</p>
               <p className="text-xs text-gray-500">Track and manage orders</p>
             </div>
+            <ChevronRight
+              size={18}
+              className="text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-brand"
+            />
           </Link>
 
-          <div className="rounded-xl border bg-white p-5">
-            <div className="mb-2 flex items-center gap-3">
-              <MapPin size={22} className="text-brand" />
+          <Link
+            href="/profile/addresses"
+            className="tap-shrink group flex items-center gap-3 rounded-xl border bg-white p-5 transition hover:shadow-md"
+          >
+            <MapPin size={22} className="text-brand" />
+            <div className="flex-1">
               <p className="font-medium text-gray-800">
                 Saved Addresses ({addresses.length})
               </p>
+              {addresses.length === 0 ? (
+                <p className="text-xs text-gray-500">
+                  No addresses saved yet — add one now.
+                </p>
+              ) : (
+                <p className="line-clamp-1 text-xs text-gray-500">
+                  {addresses[0].completeAddress}
+                </p>
+              )}
             </div>
-            {addresses.length === 0 ? (
-              <p className="text-xs text-gray-500">
-                No addresses saved yet — add one at checkout.
-              </p>
-            ) : (
-              <p className="text-xs text-gray-500 line-clamp-1">
-                {addresses[0].completeAddress}
-              </p>
-            )}
-          </div>
+            <ChevronRight
+              size={18}
+              className="text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-brand"
+            />
+          </Link>
 
           {(user.role === "SELLER" || user.role === "ADMIN") && (
             <Link
               href="/admin"
-              className="flex items-center gap-3 rounded-xl border bg-white p-5 hover:shadow-md"
+              className="tap-shrink group flex items-center gap-3 rounded-xl border bg-white p-5 transition hover:shadow-md"
             >
               <UserIcon size={22} className="text-brand" />
-              <div>
+              <div className="flex-1">
                 <p className="font-medium text-gray-800">
                   {user.role === "ADMIN" ? "Admin Dashboard" : "Seller Dashboard"}
                 </p>
                 <p className="text-xs text-gray-500">Manage products & orders</p>
               </div>
+              <ChevronRight
+                size={18}
+                className="text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-brand"
+              />
             </Link>
           )}
 
           <button
             onClick={logout}
-            className="flex items-center gap-3 rounded-xl border bg-white p-5 text-left hover:shadow-md"
+            className="tap-shrink flex items-center gap-3 rounded-xl border bg-white p-5 text-left transition hover:shadow-md"
           >
             <LogOut size={22} className="text-red-500" />
             <p className="font-medium text-gray-800">Logout</p>

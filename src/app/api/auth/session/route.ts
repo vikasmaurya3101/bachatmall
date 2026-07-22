@@ -15,7 +15,7 @@ export async function GET() {
       });
     }
 
-    const user = await authRepository.findUser(session.phone);
+    const user = await authRepository.findUserById(session.userId);
 
     if (!user) {
       return NextResponse.json({
@@ -31,6 +31,7 @@ export async function GET() {
       user: {
         id: user.id,
         phone: user.phone,
+        email: user.email,
         firstName: user.firstName,
         lastName: user.lastName,
         role: user.role,

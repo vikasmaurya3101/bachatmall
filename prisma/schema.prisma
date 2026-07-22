@@ -107,11 +107,12 @@ enum BannerPosition {
 
 model User {
   id               String            @id @default(cuid())
-  phone            String            @unique
+  phone            String?           @unique
   phoneVerified    Boolean           @default(false)
   email            String?           @unique
   emailVerified    Boolean           @default(false)
   googleId         String?           @unique
+  firebaseUid      String?           @unique
   firstName        String?
   lastName         String?
   profileImage     String?
@@ -185,6 +186,8 @@ model Address {
   pincode         String
   completeAddress String
   googlePlaceId   String?
+  latitude        Float?
+  longitude       Float?
   type            AddressType @default(HOME)
   isDefault       Boolean     @default(false)
   orders          Order[]

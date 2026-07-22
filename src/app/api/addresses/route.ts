@@ -15,6 +15,8 @@ const AddressSchema = z.object({
   pincode: z.string().trim().regex(/^\d{6}$/, "Enter a valid 6-digit pincode"),
   type: z.enum(["HOME", "WORK", "OTHER"]).default("HOME"),
   isDefault: z.boolean().default(false),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
 });
 
 export async function GET() {

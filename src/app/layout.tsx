@@ -18,8 +18,31 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "BachatMall",
-  description: "Sabse Sasta, Yahi Milega — India's smart shopping destination.",
+  title: {
+    default: "BachatMall — Sabse Sasta, Sabse Achha",
+    template: "%s | BachatMall",
+  },
+  description:
+    "Sabse Sasta, Sabse Achha — India's trusted online shopping destination for best prices, fast delivery & 24x7 support.",
+  icons: {
+    icon: [
+      { url: "/brand/logo-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/brand/logo-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/brand/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  manifest: "/site.webmanifest",
+  openGraph: {
+    title: "BachatMall — Sabse Sasta, Sabse Achha",
+    description:
+      "India's trusted online shopping destination for best prices, fast delivery & 24x7 support.",
+    images: [{ url: "/brand/og-image.png", width: 1200, height: 630 }],
+    type: "website",
+  },
+};
+
+export const viewport = {
+  themeColor: "#160a2e",
 };
 
 export default function RootLayout({

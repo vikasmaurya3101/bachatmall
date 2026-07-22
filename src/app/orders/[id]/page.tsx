@@ -83,6 +83,16 @@ export default function OrderDetailPage() {
           <p className="text-sm text-gray-600">
             {order.address.completeAddress}
           </p>
+          {order.address.latitude && order.address.longitude && (
+            <a
+              href={`https://www.google.com/maps?q=${order.address.latitude},${order.address.longitude}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="mt-2 inline-block text-xs font-medium text-brand hover:underline"
+            >
+              View exact drop location on map →
+            </a>
+          )}
         </div>
 
         <div className="mb-4 rounded-xl border bg-white p-5">

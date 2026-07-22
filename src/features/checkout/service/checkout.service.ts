@@ -1,8 +1,45 @@
+import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
 const SHIPPING_CHARGE_THRESHOLD = 499;
 const SHIPPING_CHARGE = 49;
+
+interface RazorpayPaymentDetails {
+  razorpayOrderId?: string;
+  razorpayPaymentId?: string;
+  razorpaySignature?: string;
+}
+
+/**
+ * Verifies the HMAC-SHA256 signature Razorpay returns after a successful
+ * payment, proving the payment really happened and wasn't tampered with.
+ * https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/build-integration/#step-5-verify-payment-signature
+ */
+function verifyRazorpaySignature({
+  razorpayOrderId,
+  razorpayPaymentId,
+  razorpaySignature,
+}: RazorpayPaymentDetails) {
+  const secret = process.env.RAZORPAY_KEY_SECRET;
+
+  if (!secret) {
+    throw new Error("Razorpay isn't configured on the server.");
+  }
+
+  if (!razorpayOrderId || !razorpayPaymentId || !razorpaySignature) {
+    throw new Error("Missing payment verification details.");
+  }
+
+  const expected = crypto
+    .createHmac("sha256", secret)
+    .update(`${razorpayOrderId}|${razorpayPaymentId}`)
+    .digest("hex");
+
+  if (expected !== razorpaySignature) {
+    throw new Error("Payment verification failed. Please contact support.");
+  }
+}
 
 function generateInvoiceNumber() {
   const now = new Date();
@@ -15,8 +52,13 @@ export class CheckoutService {
   async placeOrder(
     userId: string,
     addressId: string,
-    paymentMethod: "COD" | "RAZORPAY" | "UPI"
+    paymentMethod: "COD" | "RAZORPAY" | "UPI",
+    razorpayDetails?: RazorpayPaymentDetails
   ) {
+    if (paymentMethod === "RAZORPAY") {
+      verifyRazorpaySignature(razorpayDetails ?? {});
+    }
+
     const address = await prisma.address.findUnique({
       where: { id: addressId },
     });
@@ -102,14 +144,22 @@ export class CheckoutService {
           taxAmount: taxTotal,
           totalAmount,
           orderStatus: "CONFIRMED",
-          paymentStatus: paymentMethod === "COD" ? "PENDING" : "PENDING",
+          paymentStatus: paymentMethod === "RAZORPAY" ? "PAID" : "PENDING",
           shipmentStatus: "PENDING",
           items: { create: orderItemsData },
           payment: {
             create: {
               method: paymentMethod,
-              status: "PENDING",
+              status: paymentMethod === "RAZORPAY" ? "PAID" : "PENDING",
               amount: totalAmount,
+              ...(paymentMethod === "RAZORPAY"
+                ? {
+                    razorpayOrderId: razorpayDetails?.razorpayOrderId,
+                    razorpayPaymentId: razorpayDetails?.razorpayPaymentId,
+                    razorpaySignature: razorpayDetails?.razorpaySignature,
+                    paidAt: new Date(),
+                  }
+                : {}),
             },
           },
         },

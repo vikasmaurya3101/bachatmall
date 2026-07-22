@@ -89,16 +89,92 @@ export class AuthRepository {
     });
   }
 
+  async findUserById(id: string) {
+    return prisma.user.findUnique({
+      where: {
+        id,
+      },
+    });
+  }
+
+  async findUserByEmail(email: string) {
+    return prisma.user.findUnique({
+      where: {
+        email,
+      },
+    });
+  }
+
+  async findUserByGoogleId(googleId: string) {
+    return prisma.user.findUnique({
+      where: {
+        googleId,
+      },
+    });
+  }
+
+  async createUserFromGoogle(data: {
+    googleId: string;
+    email: string;
+    firstName?: string;
+    lastName?: string;
+    profileImage?: string;
+  }) {
+    return prisma.user.create({
+      data: {
+        googleId: data.googleId,
+        email: data.email,
+        emailVerified: true,
+        firstName: data.firstName ?? null,
+        lastName: data.lastName ?? null,
+        profileImage: data.profileImage ?? null,
+      },
+    });
+  }
+
+  async linkGoogleAccount(
+    userId: string,
+    data: {
+      googleId: string;
+      profileImage?: string;
+    }
+  ) {
+    return prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        googleId: data.googleId,
+        emailVerified: true,
+        profileImage: data.profileImage ?? undefined,
+      },
+    });
+  }
+
+  async attachPhone(userId: string, phone: string) {
+    return prisma.user.update({
+      where: {
+        id: userId,
+      },
+      data: {
+        phone,
+        phoneVerified: true,
+      },
+    });
+  }
+
   async createUser(data: {
     phone: string;
     firstName: string;
     lastName?: string;
+    email?: string;
   }) {
     return prisma.user.create({
       data: {
         phone: data.phone,
         firstName: data.firstName,
         lastName: data.lastName ?? null,
+        email: data.email && data.email.trim() ? data.email.trim() : null,
         phoneVerified: true,
       },
     });
@@ -107,7 +183,8 @@ export class AuthRepository {
   async updateProfile(
     userId: string,
     firstName: string,
-    lastName?: string
+    lastName?: string,
+    email?: string
   ) {
     return prisma.user.update({
       where: {
@@ -116,6 +193,9 @@ export class AuthRepository {
       data: {
         firstName,
         lastName: lastName ?? null,
+        ...(email !== undefined
+          ? { email: email.trim() ? email.trim() : null }
+          : {}),
       },
     });
   }

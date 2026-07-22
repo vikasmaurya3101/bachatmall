@@ -20,7 +20,12 @@ export async function POST(request: NextRequest) {
     const order = await checkoutService.placeOrder(
       session.userId,
       data.addressId,
-      data.paymentMethod
+      data.paymentMethod,
+      {
+        razorpayOrderId: data.razorpayOrderId,
+        razorpayPaymentId: data.razorpayPaymentId,
+        razorpaySignature: data.razorpaySignature,
+      }
     );
 
     return NextResponse.json({

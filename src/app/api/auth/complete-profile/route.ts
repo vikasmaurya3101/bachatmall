@@ -3,15 +3,13 @@ import { NextRequest, NextResponse } from "next/server";
 import { authRepository } from "@/features/auth/repositories/auth.repository";
 import { createSession } from "@/lib/session";
 
+const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    const {
-      phone,
-      firstName,
-      lastName,
-    } = body;
+    const { phone, firstName, lastName, email } = body;
 
     if (!phone || !firstName?.trim()) {
       return NextResponse.json(
@@ -23,8 +21,19 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const existingUser =
-      await authRepository.findUser(phone);
+    const trimmedEmail: string | undefined = email?.trim() || undefined;
+
+    if (trimmedEmail && !EMAIL_REGEX.test(trimmedEmail)) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Enter a valid email address.",
+        },
+        { status: 400 }
+      );
+    }
+
+    const existingUser = await authRepository.findUser(phone);
 
     if (existingUser) {
       return NextResponse.json(
@@ -36,10 +45,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    if (trimmedEmail) {
+      const existingEmail = await authRepository.findUserByEmail(trimmedEmail);
+
+      if (existingEmail) {
+        return NextResponse.json(
+          {
+            success: false,
+            message: "That email is already linked to another account.",
+          },
+          { status: 409 }
+        );
+      }
+    }
+
     const user = await authRepository.createUser({
       phone,
       firstName: firstName.trim(),
-      lastName: lastName?.trim() || null,
+      lastName: lastName?.trim() || undefined,
+      email: trimmedEmail,
     });
 
     await createSession({
