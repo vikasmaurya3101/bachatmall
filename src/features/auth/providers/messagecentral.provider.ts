@@ -101,7 +101,7 @@ export const messageCentralProvider = {
     const url =
       `${BASE_URL}/verification/v3/send` +
       `?countryCode=91&customerId=${encodeURIComponent(customerId)}` +
-      `&flowType=SMS&type=SMS&mobileNumber=${encodeURIComponent(phone)}` +
+      `&flowType=SMS&type=OTP&mobileNumber=${encodeURIComponent(phone)}` +
       `&otpLength=6`;
 
     const response = await fetch(url, {
