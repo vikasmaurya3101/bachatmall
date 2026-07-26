@@ -48,7 +48,7 @@ export default function ProductCard({ product }: ProductCardProps) {
         />
       </button>
 
-      <Link href={`/product/${product.slug}`} className="block">
+      <Link href={`/product/${product.slug}`} className="block" prefetch={false}>
         <div className="relative aspect-square w-full bg-gradient-to-b from-brand-50/60 to-white">
           <Image
             src={thumbnail}
