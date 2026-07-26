@@ -59,12 +59,7 @@ export function middleware(request: NextRequest) {
     request.cookies.get("bachatmall_session");
 
   if (!session) {
-    const loginUrl = new URL("/", request.url);
-
-    loginUrl.searchParams.set(
-      "login",
-      "required"
-    );
+    const loginUrl = new URL("/login", request.url);
 
     loginUrl.searchParams.set(
       "redirect",
