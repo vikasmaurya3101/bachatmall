@@ -110,12 +110,20 @@ export default function AdminProductsPage() {
           <h1 className="text-2xl font-bold text-gray-800 sm:text-3xl">
             Manage Products
           </h1>
-          <Link
-            href="/admin/products/new"
-            className="rounded-xl bg-brand px-4 py-2 font-semibold text-white transition hover:opacity-90"
-          >
-            + Add Product
-          </Link>
+          <div className="flex gap-2">
+            <Link
+              href="/admin/products/bulk-import"
+              className="rounded-xl border-2 border-brand px-4 py-2 font-semibold text-brand transition hover:bg-brand-50"
+            >
+              Bulk Import (CSV)
+            </Link>
+            <Link
+              href="/admin/products/new"
+              className="rounded-xl bg-brand px-4 py-2 font-semibold text-white transition hover:opacity-90"
+            >
+              + Add Product
+            </Link>
+          </div>
         </div>
 
         <input
