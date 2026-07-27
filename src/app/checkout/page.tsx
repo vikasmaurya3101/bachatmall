@@ -300,7 +300,6 @@ export default function CheckoutPage() {
     (sum, item) => sum + Number(item.product.sellingPrice) * item.quantity,
     0
   );
-  const shipping = subtotal >= 499 ? 0 : 49;
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
@@ -514,19 +513,9 @@ export default function CheckoutPage() {
             </h2>
 
             <div className="space-y-2 text-sm">
-              <div className="flex justify-between text-gray-600">
-                <span>Subtotal</span>
-                <span>{formatCurrency(subtotal)}</span>
-              </div>
-              <div className="flex justify-between text-gray-600">
-                <span>Shipping</span>
-                <span>
-                  {shipping === 0 ? "Free" : formatCurrency(shipping)}
-                </span>
-              </div>
               <div className="flex justify-between border-t pt-2 font-semibold text-gray-900">
                 <span>Total</span>
-                <span>{formatCurrency(subtotal + shipping)}</span>
+                <span>{formatCurrency(subtotal)}</span>
               </div>
             </div>
 

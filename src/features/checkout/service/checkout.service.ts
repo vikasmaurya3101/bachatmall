@@ -2,9 +2,6 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 
-const SHIPPING_CHARGE_THRESHOLD = 499;
-const SHIPPING_CHARGE = 49;
-
 interface RazorpayPaymentDetails {
   razorpayOrderId?: string;
   razorpayPaymentId?: string;
@@ -96,19 +93,14 @@ export class CheckoutService {
 
     let subtotal = new Prisma.Decimal(0);
     let mrpTotal = new Prisma.Decimal(0);
-    let taxTotal = new Prisma.Decimal(0);
 
     const orderItemsData = cart.items.map((item) => {
       const sellingPrice = new Prisma.Decimal(item.product.sellingPrice);
       const mrp = new Prisma.Decimal(item.product.mrp);
       const lineTotal = sellingPrice.mul(item.quantity);
-      const lineTax = lineTotal
-        .mul(new Prisma.Decimal(item.product.taxPercent))
-        .div(100);
 
       subtotal = subtotal.add(lineTotal);
       mrpTotal = mrpTotal.add(mrp.mul(item.quantity));
-      taxTotal = taxTotal.add(lineTax);
 
       return {
         productId: item.productId,
@@ -121,16 +113,16 @@ export class CheckoutService {
         quantity: item.quantity,
         mrp: item.product.mrp,
         sellingPrice: item.product.sellingPrice,
-        taxAmount: lineTax,
-        totalAmount: lineTotal.add(lineTax),
+        taxAmount: new Prisma.Decimal(0),
+        totalAmount: lineTotal,
       };
     });
 
     const discountAmount = mrpTotal.sub(subtotal);
-    const shippingCharge = subtotal.gte(SHIPPING_CHARGE_THRESHOLD)
-      ? new Prisma.Decimal(0)
-      : new Prisma.Decimal(SHIPPING_CHARGE);
-    const totalAmount = subtotal.add(taxTotal).add(shippingCharge);
+    // No tax or shipping charge is added — customer pays the product subtotal only.
+    const shippingCharge = new Prisma.Decimal(0);
+    const taxTotal = new Prisma.Decimal(0);
+    const totalAmount = subtotal;
 
     const order = await prisma.$transaction(async (tx) => {
       const created = await tx.order.create({

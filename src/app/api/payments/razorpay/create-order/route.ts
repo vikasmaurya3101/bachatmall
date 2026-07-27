@@ -4,9 +4,6 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getRazorpayInstance } from "@/lib/razorpay";
 
-const SHIPPING_CHARGE_THRESHOLD = 499;
-const SHIPPING_CHARGE = 49;
-
 /**
  * Creates a Razorpay order sized to the user's current cart total, so the
  * checkout page can open the Razorpay payment modal against it. The actual
@@ -37,24 +34,16 @@ export async function POST() {
     }
 
     let subtotal = new Prisma.Decimal(0);
-    let taxTotal = new Prisma.Decimal(0);
 
     for (const item of cart.items) {
       const sellingPrice = new Prisma.Decimal(item.product.sellingPrice);
       const lineTotal = sellingPrice.mul(item.quantity);
-      const lineTax = lineTotal
-        .mul(new Prisma.Decimal(item.product.taxPercent))
-        .div(100);
 
       subtotal = subtotal.add(lineTotal);
-      taxTotal = taxTotal.add(lineTax);
     }
 
-    const shippingCharge = subtotal.gte(SHIPPING_CHARGE_THRESHOLD)
-      ? new Prisma.Decimal(0)
-      : new Prisma.Decimal(SHIPPING_CHARGE);
-
-    const totalAmount = subtotal.add(taxTotal).add(shippingCharge);
+    // No tax or shipping charge is added — customer pays the product subtotal only.
+    const totalAmount = subtotal;
     const amountInPaise = Math.round(totalAmount.toNumber() * 100);
 
     const razorpay = getRazorpayInstance();
