@@ -63,9 +63,17 @@ export default function AdminPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="mx-auto max-w-5xl">
-        <h1 className="mb-6 text-2xl font-bold text-gray-800 sm:text-3xl">
-          {user?.role === "ADMIN" ? "Admin Dashboard" : "Seller Dashboard"}
-        </h1>
+        <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-2xl font-bold text-gray-800 sm:text-3xl">
+            {user?.role === "ADMIN" ? "Admin Dashboard" : "Seller Dashboard"}
+          </h1>
+          <a
+            href="/admin/products"
+            className="rounded-xl bg-brand px-4 py-2 font-semibold text-white transition hover:opacity-90"
+          >
+            Manage Products
+          </a>
+        </div>
 
         {error && (
           <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600">

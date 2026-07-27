@@ -20,6 +20,7 @@ const PROTECTED_ROUTES = [
   "/orders",
   "/profile",
   "/seller",
+  "/admin",
 ];
 
 export function middleware(request: NextRequest) {

@@ -4,6 +4,7 @@ import {
 } from "next/server";
 
 import productService from "@/features/products/service/product.service";
+import { getSession } from "@/lib/session";
 
 import {
   ProductQueryDto,
@@ -53,6 +54,15 @@ export async function GET(
 export async function POST(
   request: NextRequest
 ) {
+  const session = await getSession();
+
+  if (!session || (session.role !== "ADMIN" && session.role !== "SELLER")) {
+    return NextResponse.json(
+      { success: false, message: "Not authorized." },
+      { status: 403 }
+    );
+  }
+
   try {
     const body =
       await request.json();

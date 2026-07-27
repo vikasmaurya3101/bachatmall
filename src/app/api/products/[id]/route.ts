@@ -4,6 +4,7 @@ import {
 } from "next/server";
 
 import productService from "@/features/products/service/product.service";
+import { getSession } from "@/lib/session";
 
 import {
   UpdateProductDto,
@@ -58,6 +59,15 @@ export async function PATCH(
     }>;
   }
 ) {
+  const session = await getSession();
+
+  if (!session || (session.role !== "ADMIN" && session.role !== "SELLER")) {
+    return NextResponse.json(
+      { success: false, message: "Not authorized." },
+      { status: 403 }
+    );
+  }
+
   try {
     const { id } =
       await params;
@@ -108,6 +118,15 @@ export async function DELETE(
     }>;
   }
 ) {
+  const session = await getSession();
+
+  if (!session || session.role !== "ADMIN") {
+    return NextResponse.json(
+      { success: false, message: "Not authorized." },
+      { status: 403 }
+    );
+  }
+
   try {
     const { id } =
       await params;
