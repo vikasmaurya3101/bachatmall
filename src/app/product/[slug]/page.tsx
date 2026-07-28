@@ -72,10 +72,16 @@ export default async function ProductPage({ params }: ProductPageProps) {
               </p>
             )}
 
-            <p className="mt-4 text-sm text-gray-500">
-              {product.stock > 0
-                ? `${product.stock} in stock`
-                : "Out of stock"}
+            <p className="mt-4 text-sm">
+              {product.stock === 0 ? (
+                <span className="font-semibold text-red-600">Out of stock</span>
+              ) : product.stock <= 10 ? (
+                <span className="font-bold text-red-600">
+                  ⚠ Only {product.stock} left in stock — order soon!
+                </span>
+              ) : (
+                <span className="text-gray-500">{product.stock} in stock</span>
+              )}
             </p>
 
             <div className="mt-6">
