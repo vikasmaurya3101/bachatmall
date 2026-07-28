@@ -112,6 +112,7 @@ export interface HomePageData {
   categories: CategoryData[];
   featuredProducts: ProductCardData[];
   flashSaleProducts: ProductCardData[];
+  flashSaleEndsAt: string | null;
   newArrivals: ProductCardData[];
   trendingProducts: ProductCardData[];
   bestSellerProducts: ProductCardData[];

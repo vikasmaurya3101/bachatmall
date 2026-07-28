@@ -5,26 +5,25 @@ import { Zap } from "lucide-react";
 import { ProductCardData } from "@/types/product";
 import ProductGrid from "@/components/product/ProductGrid";
 
-function getEndOfDay() {
-  const end = new Date();
-  end.setHours(23, 59, 59, 999);
-  return end;
-}
-
-function useCountdown() {
+function useCountdown(endsAt: string | null) {
   const [remaining, setRemaining] = useState(0);
 
   useEffect(() => {
-    const end = getEndOfDay();
+    if (!endsAt) {
+      setRemaining(0);
+      return;
+    }
+
+    const end = new Date(endsAt).getTime();
 
     function tick() {
-      setRemaining(Math.max(0, end.getTime() - Date.now()));
+      setRemaining(Math.max(0, end - Date.now()));
     }
 
     tick();
     const interval = setInterval(tick, 1000);
     return () => clearInterval(interval);
-  }, []);
+  }, [endsAt]);
 
   const hours = Math.floor(remaining / 3600000);
   const minutes = Math.floor((remaining % 3600000) / 60000);
@@ -35,10 +34,12 @@ function useCountdown() {
 
 export default function FlashSale({
   products,
+  endsAt,
 }: {
   products: ProductCardData[];
+  endsAt: string | null;
 }) {
-  const { hours, minutes, seconds } = useCountdown();
+  const { hours, minutes, seconds } = useCountdown(endsAt);
 
   if (products.length === 0) return null;
 

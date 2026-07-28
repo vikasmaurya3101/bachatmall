@@ -9,8 +9,8 @@ export async function seedCategories(prisma: PrismaClient) {
     { name: "Beauty", slug: "beauty" },
     { name: "Grocery", slug: "grocery" },
     { name: "Books", slug: "books" },
+    { name: "Toys & Stationery", slug: "toys" },
     { name: "Sports", slug: "sports" },
-    { name: "Toys", slug: "toys" },
     { name: "Automotive", slug: "automotive" },
   ];
 
@@ -19,7 +19,11 @@ export async function seedCategories(prisma: PrismaClient) {
       where: {
         slug: categories[i].slug,
       },
-      update: {},
+      update: {
+        name: categories[i].name,
+        displayOrder: i + 1,
+        isActive: true,
+      },
       create: {
         ...categories[i],
         isActive: true,

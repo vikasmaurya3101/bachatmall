@@ -125,10 +125,12 @@ class ProductRepository {
     }
   }
     async getHomeData() {
+    const now = new Date();
+
     const [
       categories,
       featuredProducts,
-      flashSaleProducts,
+      activeFlashSale,
       newArrivals,
       trendingProducts,
       bestSellerProducts,
@@ -153,15 +155,29 @@ class ProductRepository {
         take: 8,
       }),
 
-      prisma.product.findMany({
+      prisma.flashSale.findFirst({
         where: {
-          isPublished: true,
+          isActive: true,
+          startsAt: { lte: now },
+          endsAt: { gte: now },
         },
-        include: this.include,
         orderBy: {
-          discountPercent: "desc",
+          startsAt: "desc",
         },
-        take: 8,
+        include: {
+          products: {
+            where: {
+              product: {
+                isPublished: true,
+              },
+            },
+            include: {
+              product: {
+                include: this.include,
+              },
+            },
+          },
+        },
       }),
 
       prisma.product.findMany({
@@ -202,10 +218,26 @@ class ProductRepository {
       }),
     ]);
 
+    const flashSaleProducts = (activeFlashSale?.products ?? [])
+      .slice(0, 8)
+      .map((flashSaleProduct) => {
+        const { product, flashPrice } = flashSaleProduct;
+        const mrp = Number(product.mrp);
+        const discountPercent =
+          mrp > 0 ? Math.round(((mrp - Number(flashPrice)) / mrp) * 100) : 0;
+
+        return {
+          ...product,
+          sellingPrice: flashPrice,
+          discountPercent,
+        };
+      });
+
     return {
       categories,
       featuredProducts,
       flashSaleProducts,
+      flashSaleEndsAt: activeFlashSale?.endsAt ?? null,
       newArrivals,
       trendingProducts,
       bestSellerProducts,

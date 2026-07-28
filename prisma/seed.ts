@@ -5,6 +5,7 @@ import { seedBrands } from "./seed/brands";
 import { seedSubCategories } from "./seed/subcategories";
 import { seedSeller } from "./seed/seller";
 import { seedProducts } from "./seed/products";
+import { seedFlashSale } from "./seed/flashsale";
 
 
 const prisma = new PrismaClient();
@@ -21,6 +22,8 @@ async function main() {
   await seedSeller(prisma);
 
   await seedProducts(prisma);
+
+  await seedFlashSale(prisma);
 
   console.log("🎉 Seed Completed");
 }

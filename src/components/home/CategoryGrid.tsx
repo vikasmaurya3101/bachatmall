@@ -1,7 +1,7 @@
 import Image from "next/image";
 import Link from "next/link";
 import {
-  Baby,
+  Blocks,
   BookOpen,
   Car,
   Cpu,
@@ -29,7 +29,7 @@ const ICONS: Record<string, LucideIcon> = {
   grocery: Salad,
   books: BookOpen,
   sports: Volleyball,
-  toys: Baby,
+  toys: Blocks,
   automotive: Car,
 };
 

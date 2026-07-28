@@ -20,6 +20,7 @@ export default async function HomePage() {
     categories,
     featuredProducts,
     flashSaleProducts,
+    flashSaleEndsAt,
     newArrivals,
     trendingProducts,
     bestSellerProducts,
@@ -33,7 +34,7 @@ export default async function HomePage() {
       </Suspense>
       <Hero />
       <CategoryGrid categories={categories} />
-      <FlashSale products={flashSaleProducts} />
+      <FlashSale products={flashSaleProducts} endsAt={flashSaleEndsAt} />
       <FeaturedProducts products={featuredProducts} />
       <TrendingProducts products={trendingProducts} />
       <TopDeals products={flashSaleProducts} />
