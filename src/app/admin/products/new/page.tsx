@@ -30,6 +30,7 @@ export default function NewProductPage() {
   const [linkUrl, setLinkUrl] = useState("");
   const [isFetchingLink, setIsFetchingLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
 
   const [form, setForm] = useState({
     name: "",
@@ -86,7 +87,7 @@ export default function NewProductPage() {
 
       if (!name && !description && !imageUrl && !price) {
         toast.error(
-          "That site blocked the fetch — fill the details manually below."
+          "That site blocked the fetch â€” fill the details manually below."
         );
         return;
       }
@@ -101,9 +102,39 @@ export default function NewProductPage() {
         sellingPrice: price ? String(price) : prev.sellingPrice,
       }));
 
-      toast.success("Fetched what we could — check every field before saving.");
+      toast.success("Fetched what we could â€” check every field before saving.");
     } finally {
       setIsFetchingLink(false);
+    }
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/admin/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+
+      if (!json.url) {
+        toast.error("Upload failed. Try again.");
+        return;
+      }
+
+      updateField("imageUrl", json.url);
+      toast.success("Image uploaded.");
+    } catch {
+      toast.error("Upload failed. Try again.");
+    } finally {
+      setIsUploading(false);
     }
   }
 
@@ -205,7 +236,7 @@ export default function NewProductPage() {
             </button>
           </div>
           <p className="mt-2 text-xs text-gray-500">
-            Big sites often block automated fetching — if nothing comes
+            Big sites often block automated fetching â€” if nothing comes
             through, just fill the form below by hand.
           </p>
         </div>
@@ -224,7 +255,23 @@ export default function NewProductPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Image URL
+              Upload Image
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+              className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+            {isUploading && (
+              <p className="mt-1 text-xs text-gray-500">Uploading...</p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Image URL (auto-filled after upload, or paste manually)
             </label>
             <input
               value={form.imageUrl}

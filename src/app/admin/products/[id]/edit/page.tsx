@@ -16,6 +16,7 @@ export default function EditProductPage() {
 
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
   const [form, setForm] = useState({
@@ -62,6 +63,36 @@ export default function EditProductPage() {
     value: (typeof form)[K]
   ) {
     setForm((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function handleFileUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/admin/upload-image", {
+        method: "POST",
+        body: formData,
+      });
+      const json = await res.json();
+
+      if (!json.url) {
+        toast.error("Upload failed. Try again.");
+        return;
+      }
+
+      updateField("imageUrl", json.url);
+      toast.success("Image uploaded.");
+    } catch {
+      toast.error("Upload failed. Try again.");
+    } finally {
+      setIsUploading(false);
+    }
   }
 
   async function handleSubmit(e: React.FormEvent) {
@@ -146,7 +177,23 @@ export default function EditProductPage() {
 
           <div>
             <label className="mb-1 block text-sm font-medium text-gray-700">
-              Image URL
+              Upload Image
+            </label>
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileUpload}
+              disabled={isUploading}
+              className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+            {isUploading && (
+              <p className="mt-1 text-xs text-gray-500">Uploading...</p>
+            )}
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Image URL (auto-filled after upload, or paste manually)
             </label>
             <input
               value={form.imageUrl}
