@@ -103,8 +103,7 @@ export async function PATCH(
     orderStatus === "DELIVERED" && existing.orderStatus !== "DELIVERED";
   const shouldMarkRefunded =
     (orderStatus === "CANCELLED" || orderStatus === "REFUNDED") &&
-    existing.payment?.status === "PAID" &&
-    existing.payment.status !== "REFUNDED";
+    existing.payment?.status === "PAID";
 
   const updated = await prisma.$transaction(async (tx) => {
     // Cancelling or returning restocks inventory. If it was already paid, we
