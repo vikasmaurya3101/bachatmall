@@ -1,6 +1,7 @@
 import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
+import { notifyAdminsOfNewOrder } from "@/lib/notify";
 
 interface RazorpayPaymentDetails {
   razorpayOrderId?: string;
@@ -166,6 +167,8 @@ export class CheckoutService {
       }
 
       await tx.cartItem.deleteMany({ where: { cartId: cart.id } });
+
+      await notifyAdminsOfNewOrder(tx, created);
 
       return created;
     });
