@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -30,6 +31,16 @@ function loadRazorpayScript(): Promise<boolean> {
   });
 }
 
+function getEstimatedDelivery() {
+  const date = new Date();
+  date.setDate(date.getDate() + 5);
+  return date.toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+  });
+}
+
 export default function CheckoutPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: isSessionLoading, user } = useSession();
@@ -39,6 +50,8 @@ export default function CheckoutPage() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [showAddressPicker, setShowAddressPicker] = useState(false);
+  const [step, setStep] = useState<"review" | "payment">("review");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "RAZORPAY">(
     "COD"
@@ -255,6 +268,15 @@ export default function CheckoutPage() {
     }
   }
 
+  function handleContinueToPayment() {
+    if (!selectedId) {
+      toast.error("Please select a delivery address.");
+      setShowAddressPicker(true);
+      return;
+    }
+    setStep("payment");
+  }
+
   async function handlePlaceOrder() {
     if (!selectedId) {
       toast.error("Please select a delivery address.");
@@ -300,288 +322,497 @@ export default function CheckoutPage() {
     (sum, item) => sum + Number(item.product.sellingPrice) * item.quantity,
     0
   );
+  const mrpTotal = items.reduce(
+    (sum, item) => sum + Number(item.product.mrp) * item.quantity,
+    0
+  );
+  const totalDiscount = mrpTotal - subtotal;
+  const selectedAddress = addresses.find((a) => a.id === selectedId) ?? null;
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="mx-auto max-w-5xl">
-        <h1 className="mb-6 text-2xl font-bold text-gray-800 sm:text-3xl">
-          Checkout
-        </h1>
-
-        <div className="grid gap-6 lg:grid-cols-3">
-          <div className="space-y-4 lg:col-span-2">
-            <div className="rounded-xl border bg-white p-5">
-              <div className="mb-3 flex items-center justify-between">
-                <h2 className="font-semibold text-gray-800">
-                  Delivery Address
-                </h2>
-                <button
-                  onClick={() => setShowForm((prev) => !prev)}
-                  className="text-sm font-medium text-brand hover:underline"
+        {/* Step indicator */}
+        <div className="mb-6 flex items-center justify-center gap-3">
+          {(["review", "payment"] as const).map((s, i) => (
+            <div key={s} className="flex items-center gap-3">
+              <div className="flex flex-col items-center gap-1">
+                <div
+                  className={`flex h-8 w-8 items-center justify-center rounded-full border-2 text-sm font-semibold ${
+                    step === s
+                      ? "border-brand bg-brand text-white"
+                      : (s === "review" && step === "payment")
+                      ? "border-brand text-brand"
+                      : "border-gray-300 text-gray-400"
+                  }`}
                 >
-                  {showForm ? "Cancel" : "+ Add New"}
-                </button>
-              </div>
-
-              {!showForm && (
-                <div className="space-y-2">
-                  {addresses.map((address) => (
-                    <label
-                      key={address.id}
-                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${
-                        selectedId === address.id
-                          ? "border-brand bg-brand-50"
-                          : "border-gray-200"
-                      }`}
-                    >
-                      <input
-                        type="radio"
-                        name="address"
-                        checked={selectedId === address.id}
-                        onChange={() => setSelectedId(address.id)}
-                        className="mt-1"
-                      />
-                      <div className="text-sm">
-                        <p className="font-medium text-gray-800">
-                          {address.fullName} · {address.phone}
-                        </p>
-                        <p className="text-gray-600">
-                          {address.completeAddress}
-                        </p>
-                      </div>
-                    </label>
-                  ))}
+                  {i + 1}
                 </div>
-              )}
+                <span
+                  className={`text-xs font-medium ${
+                    step === s ? "text-brand" : "text-gray-400"
+                  }`}
+                >
+                  {s === "review" ? "Review" : "Payment"}
+                </span>
+              </div>
+              {i === 0 && <div className="mb-4 h-px w-12 bg-gray-300 sm:w-24" />}
+            </div>
+          ))}
+        </div>
 
-              {showForm && (
-                <form onSubmit={handleAddAddress} className="grid gap-3 sm:grid-cols-2">
-                  {!coords ? (
-                    <button
-                      type="button"
-                      onClick={handleUseCurrentLocation}
-                      disabled={isLocating}
-                      className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-brand-100 bg-brand-50/40 py-2.5 text-sm font-semibold text-brand transition hover:bg-brand-50 disabled:opacity-60 sm:col-span-2"
+        {step === "review" && (
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="space-y-4 lg:col-span-2">
+              {/* Product details */}
+              <div className="rounded-xl border bg-white">
+                <div className="flex items-center gap-2 border-b p-4 text-sm text-gray-600">
+                  <span>🚚</span>
+                  <span>
+                    Estimated Delivery by{" "}
+                    <span className="font-medium text-gray-800">
+                      {getEstimatedDelivery()}
+                    </span>
+                  </span>
+                </div>
+
+                {items.map((item) => {
+                  const mrp = Number(item.product.mrp);
+                  const price = Number(item.product.sellingPrice);
+                  const off =
+                    mrp > 0 ? Math.round(((mrp - price) / mrp) * 100) : 0;
+                  const thumb =
+                    item.product.images.find((img) => img.isThumbnail)?.url ??
+                    item.product.images[0]?.url;
+
+                  return (
+                    <div
+                      key={item.id}
+                      className="flex gap-3 border-b p-4 last:border-0"
                     >
-                      📍 {isLocating ? "Detecting your location..." : "Use my current location"}
-                    </button>
-                  ) : (
-                    <div className="flex items-center justify-between gap-3 rounded-lg border-2 border-brand-100 bg-brand-50/40 px-4 py-2.5 sm:col-span-2">
-                      <span className="text-sm font-semibold text-brand-dark">
-                        📍 Delivering near your current location
-                      </span>
-                      <div className="flex items-center gap-3 text-xs font-semibold">
-                        <button
-                          type="button"
-                          onClick={handleUseCurrentLocation}
-                          disabled={isLocating}
-                          className="text-brand hover:underline disabled:opacity-60"
-                        >
-                          {isLocating ? "Updating..." : "Update"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleClearLocation}
-                          className="text-gray-400 hover:text-gray-600"
-                        >
-                          Remove
-                        </button>
+                      {thumb && (
+                        <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-50">
+                          <Image
+                            src={thumb}
+                            alt={item.product.name}
+                            fill
+                            sizes="56px"
+                            className="object-contain p-1"
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <p className="text-sm font-medium text-gray-800">
+                          {item.product.name}
+                        </p>
+                        <p className="mt-1 text-sm">
+                          <span className="font-semibold text-gray-900">
+                            {formatCurrency(price)}
+                          </span>{" "}
+                          {off > 0 && (
+                            <>
+                              <span className="text-gray-400 line-through">
+                                {formatCurrency(mrp)}
+                              </span>{" "}
+                              <span className="font-medium text-green-600">
+                                {off}% Off
+                              </span>
+                            </>
+                          )}
+                        </p>
+                        <p className="text-xs text-gray-400">
+                          Qty: {item.quantity}
+                        </p>
                       </div>
                     </div>
-                  )}
-                  <input
-                    required
-                    placeholder="Full Name"
-                    value={form.fullName}
-                    onChange={(e) =>
-                      setForm({ ...form, fullName: e.target.value })
-                    }
-                    className="rounded-lg border px-3 py-2 outline-none focus:border-brand sm:col-span-2"
-                  />
-                  <input
-                    required
-                    placeholder="Phone"
-                    value={form.phone}
-                    onChange={(e) =>
-                      setForm({ ...form, phone: e.target.value })
-                    }
-                    className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
-                  />
-                  <input
-                    required
-                    placeholder="Pincode"
-                    value={form.pincode}
-                    onChange={(e) =>
-                      setForm({ ...form, pincode: e.target.value })
-                    }
-                    className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
-                  />
-                  <input
-                    required
-                    placeholder="House / Flat No."
-                    value={form.houseNumber}
-                    onChange={(e) =>
-                      setForm({ ...form, houseNumber: e.target.value })
-                    }
-                    className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
-                  />
-                  <input
-                    placeholder="Apartment / Building (optional)"
-                    value={form.apartment}
-                    onChange={(e) =>
-                      setForm({ ...form, apartment: e.target.value })
-                    }
-                    className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
-                  />
-                  <input
-                    required
-                    placeholder="Area / Street"
-                    value={form.area}
-                    onChange={(e) =>
-                      setForm({ ...form, area: e.target.value })
-                    }
-                    className="rounded-lg border px-3 py-2 outline-none focus:border-brand sm:col-span-2"
-                  />
-                  <input
-                    placeholder="Landmark (optional)"
-                    value={form.landmark}
-                    onChange={(e) =>
-                      setForm({ ...form, landmark: e.target.value })
-                    }
-                    className="rounded-lg border px-3 py-2 outline-none focus:border-brand sm:col-span-2"
-                  />
-                  <input
-                    required
-                    placeholder="City"
-                    value={form.city}
-                    onChange={(e) =>
-                      setForm({ ...form, city: e.target.value })
-                    }
-                    className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
-                  />
-                  <input
-                    required
-                    placeholder="State"
-                    value={form.state}
-                    onChange={(e) =>
-                      setForm({ ...form, state: e.target.value })
-                    }
-                    className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
-                  />
+                  );
+                })}
 
-                  {coords && (
-                    <p className="-mt-1 text-xs text-gray-400 sm:col-span-2">
-                      Area, city, state &amp; pincode below were filled in
-                      automatically — edit any of them if needed.
-                    </p>
-                  )}
-
-                  <button
-                    type="submit"
-                    className="rounded-lg bg-brand py-2.5 font-semibold text-white hover:bg-brand-dark sm:col-span-2"
-                  >
-                    Save Address
-                  </button>
-                </form>
-              )}
-            </div>
-
-            <div className="rounded-xl border bg-white p-5">
-              <h2 className="mb-3 font-semibold text-gray-800">
-                Order Items ({items.length})
-              </h2>
-              <div className="space-y-3">
-                {items.map((item) => (
-                  <div key={item.id} className="flex justify-between text-sm">
-                    <span className="text-gray-700">
-                      {item.product.name} × {item.quantity}
-                    </span>
-                    <span className="font-medium text-gray-900">
-                      {formatCurrency(
-                        Number(item.product.sellingPrice) * item.quantity
-                      )}
-                    </span>
+                {items[0]?.product.seller?.businessName && (
+                  <div className="border-t p-4 text-xs text-gray-400">
+                    Sold by: {items[0].product.seller.businessName}
                   </div>
-                ))}
+                )}
+              </div>
+
+              {/* Delivery address */}
+              <div className="rounded-xl border bg-white p-5">
+                <div className="mb-3 flex items-center gap-2">
+                  <span>📍</span>
+                  <h2 className="font-semibold text-gray-800">
+                    Delivery Address
+                  </h2>
+                </div>
+
+                {selectedAddress && !showAddressPicker ? (
+                  <div className="flex items-start justify-between gap-3 text-sm">
+                    <div>
+                      <p className="font-medium text-gray-800">
+                        {selectedAddress.fullName}
+                      </p>
+                      <p className="text-gray-600">
+                        {selectedAddress.completeAddress}
+                      </p>
+                      <p className="text-gray-500">{selectedAddress.phone}</p>
+                    </div>
+                    <button
+                      onClick={() => setShowAddressPicker(true)}
+                      className="whitespace-nowrap text-sm font-semibold text-brand hover:underline"
+                    >
+                      CHANGE
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <div className="mb-3 flex items-center justify-between">
+                      <span className="text-xs font-medium text-gray-500">
+                        {addresses.length === 0
+                          ? "Add a delivery address"
+                          : "Choose an address"}
+                      </span>
+                      <button
+                        onClick={() => setShowForm((prev) => !prev)}
+                        className="text-sm font-medium text-brand hover:underline"
+                      >
+                        {showForm ? "Cancel" : "+ Add New"}
+                      </button>
+                    </div>
+
+                    {!showForm && (
+                      <div className="space-y-2">
+                        {addresses.map((address) => (
+                          <label
+                            key={address.id}
+                            className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 ${
+                              selectedId === address.id
+                                ? "border-brand bg-brand-50"
+                                : "border-gray-200"
+                            }`}
+                          >
+                            <input
+                              type="radio"
+                              name="address"
+                              checked={selectedId === address.id}
+                              onChange={() => {
+                                setSelectedId(address.id);
+                                setShowAddressPicker(false);
+                              }}
+                              className="mt-1"
+                            />
+                            <div className="text-sm">
+                              <p className="font-medium text-gray-800">
+                                {address.fullName} · {address.phone}
+                              </p>
+                              <p className="text-gray-600">
+                                {address.completeAddress}
+                              </p>
+                            </div>
+                          </label>
+                        ))}
+                      </div>
+                    )}
+
+                    {showForm && (
+                      <form
+                        onSubmit={handleAddAddress}
+                        className="grid gap-3 sm:grid-cols-2"
+                      >
+                        {!coords ? (
+                          <button
+                            type="button"
+                            onClick={handleUseCurrentLocation}
+                            disabled={isLocating}
+                            className="flex items-center justify-center gap-2 rounded-lg border-2 border-dashed border-brand-100 bg-brand-50/40 py-2.5 text-sm font-semibold text-brand transition hover:bg-brand-50 disabled:opacity-60 sm:col-span-2"
+                          >
+                            📍{" "}
+                            {isLocating
+                              ? "Detecting your location..."
+                              : "Use my current location"}
+                          </button>
+                        ) : (
+                          <div className="flex items-center justify-between gap-3 rounded-lg border-2 border-brand-100 bg-brand-50/40 px-4 py-2.5 sm:col-span-2">
+                            <span className="text-sm font-semibold text-brand-dark">
+                              📍 Delivering near your current location
+                            </span>
+                            <div className="flex items-center gap-3 text-xs font-semibold">
+                              <button
+                                type="button"
+                                onClick={handleUseCurrentLocation}
+                                disabled={isLocating}
+                                className="text-brand hover:underline disabled:opacity-60"
+                              >
+                                {isLocating ? "Updating..." : "Update"}
+                              </button>
+                              <button
+                                type="button"
+                                onClick={handleClearLocation}
+                                className="text-gray-400 hover:text-gray-600"
+                              >
+                                Remove
+                              </button>
+                            </div>
+                          </div>
+                        )}
+                        <input
+                          required
+                          placeholder="Full Name"
+                          value={form.fullName}
+                          onChange={(e) =>
+                            setForm({ ...form, fullName: e.target.value })
+                          }
+                          className="rounded-lg border px-3 py-2 outline-none focus:border-brand sm:col-span-2"
+                        />
+                        <input
+                          required
+                          placeholder="Phone"
+                          value={form.phone}
+                          onChange={(e) =>
+                            setForm({ ...form, phone: e.target.value })
+                          }
+                          className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
+                        />
+                        <input
+                          required
+                          placeholder="Pincode"
+                          value={form.pincode}
+                          onChange={(e) =>
+                            setForm({ ...form, pincode: e.target.value })
+                          }
+                          className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
+                        />
+                        <input
+                          required
+                          placeholder="House / Flat No."
+                          value={form.houseNumber}
+                          onChange={(e) =>
+                            setForm({ ...form, houseNumber: e.target.value })
+                          }
+                          className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
+                        />
+                        <input
+                          placeholder="Apartment / Building (optional)"
+                          value={form.apartment}
+                          onChange={(e) =>
+                            setForm({ ...form, apartment: e.target.value })
+                          }
+                          className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
+                        />
+                        <input
+                          required
+                          placeholder="Area / Street"
+                          value={form.area}
+                          onChange={(e) =>
+                            setForm({ ...form, area: e.target.value })
+                          }
+                          className="rounded-lg border px-3 py-2 outline-none focus:border-brand sm:col-span-2"
+                        />
+                        <input
+                          placeholder="Landmark (optional)"
+                          value={form.landmark}
+                          onChange={(e) =>
+                            setForm({ ...form, landmark: e.target.value })
+                          }
+                          className="rounded-lg border px-3 py-2 outline-none focus:border-brand sm:col-span-2"
+                        />
+                        <input
+                          required
+                          placeholder="City"
+                          value={form.city}
+                          onChange={(e) =>
+                            setForm({ ...form, city: e.target.value })
+                          }
+                          className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
+                        />
+                        <input
+                          required
+                          placeholder="State"
+                          value={form.state}
+                          onChange={(e) =>
+                            setForm({ ...form, state: e.target.value })
+                          }
+                          className="rounded-lg border px-3 py-2 outline-none focus:border-brand"
+                        />
+
+                        {coords && (
+                          <p className="-mt-1 text-xs text-gray-400 sm:col-span-2">
+                            Area, city, state &amp; pincode below were filled
+                            in automatically — edit any of them if needed.
+                          </p>
+                        )}
+
+                        <button
+                          type="submit"
+                          className="rounded-lg bg-brand py-2.5 font-semibold text-white hover:bg-brand-dark sm:col-span-2"
+                        >
+                          Save Address
+                        </button>
+                      </form>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
-          </div>
 
-          <div className="h-fit rounded-xl border bg-white p-5">
-            <h2 className="mb-4 font-semibold text-gray-800">
-              Order Summary
-            </h2>
+            {/* Price details */}
+            <div className="h-fit rounded-xl border bg-white p-5">
+              <h2 className="mb-4 font-semibold text-gray-800">
+                Price Details ({items.length} {items.length === 1 ? "Item" : "Items"})
+              </h2>
 
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between border-t pt-2 font-semibold text-gray-900">
-                <span>Total</span>
-                <span>{formatCurrency(subtotal)}</span>
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between text-gray-600">
+                  <span>Product Price</span>
+                  <span>+ {formatCurrency(mrpTotal)}</span>
+                </div>
+                {totalDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Total Discounts</span>
+                    <span>- {formatCurrency(totalDiscount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t pt-2 font-semibold text-gray-900">
+                  <span>Order Total</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
               </div>
-            </div>
 
-            <div className="mt-4 space-y-2">
-              <p className="text-xs font-semibold text-gray-500">
-                Payment Method
+              {totalDiscount > 0 && (
+                <div className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
+                  <span>✅</span>
+                  <span>
+                    Yay! Your total discount is {formatCurrency(totalDiscount)}
+                  </span>
+                </div>
+              )}
+
+              <p className="mt-4 text-center text-xs text-gray-400">
+                Clicking on &apos;Continue&apos; will not deduct any money
               </p>
 
-              <label
-                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
-                  paymentMethod === "COD"
-                    ? "border-brand bg-brand-50"
-                    : "border-gray-200"
-                }`}
+              <button
+                onClick={handleContinueToPayment}
+                className="tap-shrink mt-3 w-full rounded-lg bg-brand py-3 font-semibold text-white transition hover:bg-brand-dark"
               >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  checked={paymentMethod === "COD"}
-                  onChange={() => setPaymentMethod("COD")}
-                />
-                <div>
-                  <p className="font-medium text-gray-800">
-                    Cash on Delivery
-                  </p>
-                  <p className="text-xs text-gray-500">
-                    Pay when your order arrives
-                  </p>
-                </div>
-              </label>
+                Continue
+              </button>
+            </div>
+          </div>
+        )}
 
-              <label
-                className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
-                  paymentMethod === "RAZORPAY"
-                    ? "border-brand bg-brand-50"
-                    : "border-gray-200"
-                }`}
-              >
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  checked={paymentMethod === "RAZORPAY"}
-                  onChange={() => setPaymentMethod("RAZORPAY")}
-                />
-                <div>
-                  <p className="font-medium text-gray-800">Pay Online</p>
-                  <p className="text-xs text-gray-500">
-                    UPI, Cards, Netbanking &amp; wallets via Razorpay
-                  </p>
+        {step === "payment" && (
+          <div className="grid gap-6 lg:grid-cols-3">
+            <div className="space-y-4 lg:col-span-2">
+              <div className="rounded-xl border bg-white p-5">
+                <div className="mb-3 flex items-center justify-between">
+                  <h2 className="font-semibold text-gray-800">
+                    Delivery Address
+                  </h2>
+                  <button
+                    onClick={() => setStep("review")}
+                    className="text-sm font-medium text-brand hover:underline"
+                  >
+                    CHANGE
+                  </button>
                 </div>
-              </label>
+                {selectedAddress && (
+                  <div className="text-sm">
+                    <p className="font-medium text-gray-800">
+                      {selectedAddress.fullName} · {selectedAddress.phone}
+                    </p>
+                    <p className="text-gray-600">
+                      {selectedAddress.completeAddress}
+                    </p>
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded-xl border bg-white p-5">
+                <p className="mb-3 text-xs font-semibold text-gray-500">
+                  Payment Method
+                </p>
+
+                <label
+                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
+                    paymentMethod === "COD"
+                      ? "border-brand bg-brand-50"
+                      : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={paymentMethod === "COD"}
+                    onChange={() => setPaymentMethod("COD")}
+                  />
+                  <div>
+                    <p className="font-medium text-gray-800">
+                      Cash on Delivery
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      Pay when your order arrives
+                    </p>
+                  </div>
+                </label>
+
+                <label
+                  className={`mt-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
+                    paymentMethod === "RAZORPAY"
+                      ? "border-brand bg-brand-50"
+                      : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={paymentMethod === "RAZORPAY"}
+                    onChange={() => setPaymentMethod("RAZORPAY")}
+                  />
+                  <div>
+                    <p className="font-medium text-gray-800">Pay Online</p>
+                    <p className="text-xs text-gray-500">
+                      UPI, Cards, Netbanking &amp; wallets via Razorpay
+                    </p>
+                  </div>
+                </label>
+              </div>
             </div>
 
-            <button
-              onClick={handlePlaceOrder}
-              disabled={isPlacingOrder || !selectedId}
-              className="tap-shrink mt-5 w-full rounded-lg bg-brand py-3 font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
-            >
-              {isPlacingOrder
-                ? "Processing..."
-                : paymentMethod === "RAZORPAY"
-                ? "Pay & Place Order"
-                : "Place Order"}
-            </button>
+            <div className="h-fit rounded-xl border bg-white p-5">
+              <h2 className="mb-4 font-semibold text-gray-800">
+                Price Details ({items.length} {items.length === 1 ? "Item" : "Items"})
+              </h2>
+
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between text-gray-600">
+                  <span>Product Price</span>
+                  <span>+ {formatCurrency(mrpTotal)}</span>
+                </div>
+                {totalDiscount > 0 && (
+                  <div className="flex justify-between text-green-600">
+                    <span>Total Discounts</span>
+                    <span>- {formatCurrency(totalDiscount)}</span>
+                  </div>
+                )}
+                <div className="flex justify-between border-t pt-2 font-semibold text-gray-900">
+                  <span>Order Total</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+              </div>
+
+              <button
+                onClick={handlePlaceOrder}
+                disabled={isPlacingOrder || !selectedId}
+                className="tap-shrink mt-5 w-full rounded-lg bg-brand py-3 font-semibold text-white transition hover:bg-brand-dark disabled:opacity-60"
+              >
+                {isPlacingOrder
+                  ? "Processing..."
+                  : paymentMethod === "RAZORPAY"
+                  ? "Pay & Place Order"
+                  : "Place Order"}
+              </button>
+            </div>
           </div>
-        </div>
+        )}
       </div>
     </main>
   );
