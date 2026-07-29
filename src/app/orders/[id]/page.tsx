@@ -3,9 +3,13 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
+import { toast } from "sonner";
 import { OrderData } from "@/types/order";
 import { formatCurrency } from "@/lib/utils/currency";
 import Loader from "@/components/ui/Loader";
+
+const RETURN_WINDOW_DAYS = 3;
+const CANCELLABLE_STATUSES = ["PENDING", "CONFIRMED", "PROCESSING"];
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
@@ -13,7 +17,13 @@ export default function OrderDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
 
-  useEffect(() => {
+  const [showCancelForm, setShowCancelForm] = useState(false);
+  const [showReturnForm, setShowReturnForm] = useState(false);
+  const [reason, setReason] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  function load() {
+    setIsLoading(true);
     fetch(`/api/orders/${params.id}`)
       .then((res) => res.json())
       .then((json) => {
@@ -25,7 +35,60 @@ export default function OrderDetailPage() {
       })
       .catch(() => setNotFound(true))
       .finally(() => setIsLoading(false));
+  }
+
+  useEffect(() => {
+    load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.id]);
+
+  async function handleCancel() {
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/orders/${params.id}/cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() || undefined }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        toast.error(json.message ?? "Unable to cancel order.");
+        return;
+      }
+      setOrder(json.data);
+      setShowCancelForm(false);
+      setReason("");
+      toast.success("Order cancelled.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
+
+  async function handleReturn() {
+    if (!reason.trim()) {
+      toast.error("Please tell us why you're returning this order.");
+      return;
+    }
+    setIsSubmitting(true);
+    try {
+      const res = await fetch(`/api/orders/${params.id}/return`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: reason.trim() }),
+      });
+      const json = await res.json();
+      if (!json.success) {
+        toast.error(json.message ?? "Unable to request return.");
+        return;
+      }
+      setOrder(json.data);
+      setShowReturnForm(false);
+      setReason("");
+      toast.success("Return requested. We'll be in touch shortly.");
+    } finally {
+      setIsSubmitting(false);
+    }
+  }
 
   if (isLoading) {
     return (
@@ -42,6 +105,23 @@ export default function OrderDetailPage() {
       </main>
     );
   }
+
+  const canCancel = CANCELLABLE_STATUSES.includes(order.orderStatus);
+
+  const daysSinceDelivery = order.deliveredAt
+    ? (Date.now() - new Date(order.deliveredAt).getTime()) /
+      (1000 * 60 * 60 * 24)
+    : null;
+
+  const canReturn =
+    order.orderStatus === "DELIVERED" &&
+    daysSinceDelivery !== null &&
+    daysSinceDelivery <= RETURN_WINDOW_DAYS;
+
+  const returnWindowExpired =
+    order.orderStatus === "DELIVERED" &&
+    daysSinceDelivery !== null &&
+    daysSinceDelivery > RETURN_WINDOW_DAYS;
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
@@ -71,6 +151,110 @@ export default function OrderDetailPage() {
               Shipment: {order.shipmentStatus.replace(/_/g, " ")}
             </span>
           </div>
+
+          {order.orderStatus === "CANCELLED" && order.cancelReason && (
+            <p className="mt-3 text-sm text-gray-500">
+              Cancellation reason: {order.cancelReason}
+            </p>
+          )}
+          {order.orderStatus === "RETURNED" && order.returnReason && (
+            <p className="mt-3 text-sm text-gray-500">
+              Return reason: {order.returnReason}
+            </p>
+          )}
+          {returnWindowExpired && (
+            <p className="mt-3 text-xs text-gray-400">
+              The {RETURN_WINDOW_DAYS}-day return window for this order has
+              passed.
+            </p>
+          )}
+
+          {(canCancel || canReturn) && !showCancelForm && !showReturnForm && (
+            <div className="mt-4 flex flex-wrap gap-3">
+              {canCancel && (
+                <button
+                  onClick={() => setShowCancelForm(true)}
+                  className="rounded-xl border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                >
+                  Cancel Order
+                </button>
+              )}
+              {canReturn && (
+                <button
+                  onClick={() => setShowReturnForm(true)}
+                  className="rounded-xl border-2 border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand-50"
+                >
+                  Return Order
+                </button>
+              )}
+            </div>
+          )}
+
+          {showCancelForm && (
+            <div className="mt-4 rounded-lg border bg-gray-50 p-3">
+              <label className="mb-1 block text-xs font-medium text-gray-500">
+                Reason (optional)
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={2}
+                placeholder="Why are you cancelling?"
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={handleCancel}
+                  disabled={isSubmitting}
+                  className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                >
+                  {isSubmitting ? "Cancelling..." : "Confirm Cancel"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCancelForm(false);
+                    setReason("");
+                  }}
+                  className="rounded-lg border px-3 py-1.5 text-sm"
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
+
+          {showReturnForm && (
+            <div className="mt-4 rounded-lg border bg-gray-50 p-3">
+              <label className="mb-1 block text-xs font-medium text-gray-500">
+                Reason for return (required)
+              </label>
+              <textarea
+                value={reason}
+                onChange={(e) => setReason(e.target.value)}
+                rows={2}
+                placeholder="What's wrong with the product?"
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+              />
+              <div className="mt-2 flex gap-2">
+                <button
+                  onClick={handleReturn}
+                  disabled={isSubmitting}
+                  className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
+                >
+                  {isSubmitting ? "Submitting..." : "Submit Return"}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowReturnForm(false);
+                    setReason("");
+                  }}
+                  className="rounded-lg border px-3 py-1.5 text-sm"
+                >
+                  Back
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mb-4 rounded-xl border bg-white p-5">

@@ -35,6 +35,9 @@ interface OrderDetail {
     amount: number | string;
     paidAt: string | null;
   } | null;
+  cancelReason: string | null;
+  returnReason: string | null;
+  returnRequestedAt: string | null;
   address: {
     fullName: string;
     phone: string;
@@ -204,6 +207,25 @@ export default function AdminOrderDetailPage() {
               </button>
             )}
         </div>
+
+        {order.cancelReason && (
+          <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+            <span className="font-semibold">Cancellation reason:</span>{" "}
+            {order.cancelReason}
+          </div>
+        )}
+        {order.returnReason && (
+          <div className="mb-6 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700">
+            <span className="font-semibold">Return reason:</span>{" "}
+            {order.returnReason}
+            {order.returnRequestedAt && (
+              <span className="ml-2 text-xs text-amber-500">
+                Requested{" "}
+                {new Date(order.returnRequestedAt).toLocaleDateString("en-IN")}
+              </span>
+            )}
+          </div>
+        )}
 
         <div className="grid gap-6 sm:grid-cols-2">
           {/* Customer */}

@@ -90,27 +90,40 @@ export async function PATCH(
     );
   }
 
+  const RESTOCK_STATUSES: OrderStatus[] = ["CANCELLED", "RETURNED"];
+  const wasAlreadyRestocked = RESTOCK_STATUSES.includes(existing.orderStatus);
+  const isNewlyRestockable =
+    !!orderStatus &&
+    RESTOCK_STATUSES.includes(orderStatus) &&
+    !wasAlreadyRestocked;
+
   const isNewlyCancelled =
     orderStatus === "CANCELLED" && existing.orderStatus !== "CANCELLED";
+  const isNewlyDelivered =
+    orderStatus === "DELIVERED" && existing.orderStatus !== "DELIVERED";
+  const shouldMarkRefunded =
+    (orderStatus === "CANCELLED" || orderStatus === "REFUNDED") &&
+    existing.payment?.status === "PAID" &&
+    existing.payment.status !== "REFUNDED";
 
   const updated = await prisma.$transaction(async (tx) => {
-    // Cancelling restocks inventory and, if it was already paid, marks the
-    // payment refunded (the actual refund still needs to be issued via your
-    // payment gateway — this just reflects it in the order record).
-    if (isNewlyCancelled) {
+    // Cancelling or returning restocks inventory. If it was already paid, we
+    // also mark the payment refunded (the actual refund still needs to be
+    // issued via your payment gateway — this just reflects it in the record).
+    if (isNewlyRestockable) {
       for (const item of existing.items) {
         await tx.product.update({
           where: { id: item.productId },
           data: { stock: { increment: item.quantity } },
         });
       }
+    }
 
-      if (existing.payment && existing.payment.status === "PAID") {
-        await tx.payment.update({
-          where: { orderId: id },
-          data: { status: "REFUNDED" as PaymentStatus },
-        });
-      }
+    if (shouldMarkRefunded) {
+      await tx.payment.update({
+        where: { orderId: id },
+        data: { status: "REFUNDED" as PaymentStatus },
+      });
     }
 
     const order = await tx.order.update({
@@ -118,9 +131,10 @@ export async function PATCH(
       data: {
         ...(orderStatus ? { orderStatus } : {}),
         ...(shipmentStatus ? { shipmentStatus } : {}),
-        ...(isNewlyCancelled && existing.payment?.status === "PAID"
-          ? { paymentStatus: "REFUNDED" as PaymentStatus }
+        ...(isNewlyDelivered && !existing.deliveredAt
+          ? { deliveredAt: new Date() }
           : {}),
+        ...(shouldMarkRefunded ? { paymentStatus: "REFUNDED" as PaymentStatus } : {}),
       },
       include: { items: true, payment: true, address: true, user: true },
     });

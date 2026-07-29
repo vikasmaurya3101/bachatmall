@@ -82,4 +82,8 @@ export interface OrderData {
   shipmentStatus: ShipmentStatus;
   payment: PaymentData | null;
   placedAt: string;
+  deliveredAt: string | null;
+  cancelReason: string | null;
+  returnReason: string | null;
+  returnRequestedAt: string | null;
 }

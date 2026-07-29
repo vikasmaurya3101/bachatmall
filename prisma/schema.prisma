@@ -395,6 +395,10 @@ model Order {
   shipmentStatus ShipmentStatus @default(PENDING)
   placedAt       DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+  deliveredAt       DateTime?
+  cancelReason      String?
+  returnReason      String?
+  returnRequestedAt DateTime?
   items          OrderItem[]
   address        Address        @relation(fields: [addressId], references: [id])
   coupon         Coupon?        @relation(fields: [couponId], references: [id])
