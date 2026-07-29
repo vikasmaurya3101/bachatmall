@@ -22,3 +22,14 @@ export function hasDiscount(
 ): boolean {
   return sellingPrice < mrp;
 }
+
+/**
+ * Flat extra discount applied when paying online (prepaid) at checkout,
+ * on top of whatever product-level discount already applies. Mirrors the
+ * "Pay Online — Save ₹X" pattern used by Meesho's checkout.
+ */
+export const PREPAID_DISCOUNT = 15;
+
+export function getPrepaidAmount(subtotal: number): number {
+  return Math.max(0, subtotal - PREPAID_DISCOUNT);
+}

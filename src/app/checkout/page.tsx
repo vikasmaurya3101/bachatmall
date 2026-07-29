@@ -4,10 +4,12 @@ import Image from "next/image";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import { Minus, Pencil, Plus } from "lucide-react";
 import { useSession } from "@/providers/SessionProvider";
 import { useCart } from "@/hooks/useCart";
 import { AddressData } from "@/types/order";
 import { formatCurrency } from "@/lib/utils/currency";
+import { getPrepaidAmount, PREPAID_DISCOUNT } from "@/lib/utils/discount";
 import Loader from "@/components/ui/Loader";
 
 declare global {
@@ -44,18 +46,27 @@ function getEstimatedDelivery() {
 export default function CheckoutPage() {
   const router = useRouter();
   const { isAuthenticated, isLoading: isSessionLoading, user } = useSession();
-  const { cart, isLoading: isCartLoading } = useCart();
+  const { cart, isLoading: isCartLoading, updateQuantity } = useCart();
 
   const [addresses, setAddresses] = useState<AddressData[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [isLoadingAddresses, setIsLoadingAddresses] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(
+    null
+  );
+  const [isSavingAddress, setIsSavingAddress] = useState(false);
   const [showAddressPicker, setShowAddressPicker] = useState(false);
   const [step, setStep] = useState<"review" | "payment">("review");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "RAZORPAY">(
     "COD"
   );
+  const [editingQtyItemId, setEditingQtyItemId] = useState<string | null>(
+    null
+  );
+  const [qtyDraft, setQtyDraft] = useState(1);
+  const [isUpdatingQty, setIsUpdatingQty] = useState(false);
 
   const [form, setForm] = useState({
     fullName: "",
@@ -96,30 +107,100 @@ export default function CheckoutPage() {
 
   async function handleAddAddress(e: React.FormEvent) {
     e.preventDefault();
+    setIsSavingAddress(true);
 
-    const res = await fetch("/api/addresses", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        ...form,
-        isDefault: addresses.length === 0,
-        latitude: coords?.lat,
-        longitude: coords?.lng,
-      }),
-    });
+    try {
+      const res = await fetch(
+        editingAddressId ? `/api/addresses/${editingAddressId}` : "/api/addresses",
+        {
+          method: editingAddressId ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            ...form,
+            ...(editingAddressId
+              ? {}
+              : { isDefault: addresses.length === 0 }),
+            latitude: coords?.lat,
+            longitude: coords?.lng,
+          }),
+        }
+      );
 
-    const json = await res.json();
+      const json = await res.json();
 
-    if (!json.success) {
-      toast.error(json.message ?? "Unable to save address.");
-      return;
+      if (!json.success) {
+        toast.error(json.message ?? "Unable to save address.");
+        return;
+      }
+
+      if (editingAddressId) {
+        setAddresses((prev) =>
+          prev.map((a) => (a.id === editingAddressId ? json.data : a))
+        );
+        toast.success("Address updated");
+      } else {
+        setAddresses((prev) => [json.data, ...prev]);
+        setSelectedId(json.data.id);
+        toast.success("Address saved");
+      }
+
+      setShowForm(false);
+      setEditingAddressId(null);
+      setCoords(null);
+    } finally {
+      setIsSavingAddress(false);
     }
+  }
 
-    setAddresses((prev) => [json.data, ...prev]);
-    setSelectedId(json.data.id);
-    setShowForm(false);
+  function openAddAddressForm() {
+    setForm({
+      fullName: "",
+      phone: "",
+      houseNumber: "",
+      apartment: "",
+      area: "",
+      landmark: "",
+      city: "",
+      state: "",
+      pincode: "",
+    });
+    setEditingAddressId(null);
     setCoords(null);
-    toast.success("Address saved");
+    setShowForm(true);
+  }
+
+  function openEditAddressForm(address: AddressData) {
+    setForm({
+      fullName: address.fullName,
+      phone: address.phone,
+      houseNumber: address.houseNumber,
+      apartment: address.apartment ?? "",
+      area: address.area,
+      landmark: address.landmark ?? "",
+      city: address.city,
+      state: address.state,
+      pincode: address.pincode,
+    });
+    setEditingAddressId(address.id);
+    setCoords(
+      address.latitude && address.longitude
+        ? { lat: address.latitude, lng: address.longitude }
+        : null
+    );
+    setShowForm(true);
+  }
+
+  async function handleUpdateQty(itemId: string) {
+    setIsUpdatingQty(true);
+    try {
+      const ok = await updateQuantity(itemId, qtyDraft);
+      if (ok) {
+        setEditingQtyItemId(null);
+        toast.success("Quantity updated");
+      }
+    } finally {
+      setIsUpdatingQty(false);
+    }
   }
 
   function handleUseCurrentLocation() {
@@ -327,6 +408,8 @@ export default function CheckoutPage() {
     0
   );
   const totalDiscount = mrpTotal - subtotal;
+  const prepaidAmount = getPrepaidAmount(subtotal);
+  const payableAmount = paymentMethod === "RAZORPAY" ? prepaidAmount : subtotal;
   const selectedAddress = addresses.find((a) => a.id === selectedId) ?? null;
 
   return (
@@ -402,9 +485,24 @@ export default function CheckoutPage() {
                         </div>
                       )}
                       <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-800">
-                          {item.product.name}
-                        </p>
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="text-sm font-medium text-gray-800">
+                            {item.product.name}
+                          </p>
+                          <button
+                            onClick={() => {
+                              if (editingQtyItemId === item.id) {
+                                setEditingQtyItemId(null);
+                              } else {
+                                setQtyDraft(item.quantity);
+                                setEditingQtyItemId(item.id);
+                              }
+                            }}
+                            className="whitespace-nowrap text-xs font-semibold text-brand hover:underline"
+                          >
+                            EDIT
+                          </button>
+                        </div>
                         <p className="mt-1 text-sm">
                           <span className="font-semibold text-gray-900">
                             {formatCurrency(price)}
@@ -420,9 +518,49 @@ export default function CheckoutPage() {
                             </>
                           )}
                         </p>
-                        <p className="text-xs text-gray-400">
-                          Qty: {item.quantity}
-                        </p>
+
+                        {editingQtyItemId === item.id ? (
+                          <div className="mt-2 flex items-center gap-3">
+                            <div className="flex items-center overflow-hidden rounded-lg border">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setQtyDraft((q) => Math.max(1, q - 1))
+                                }
+                                disabled={qtyDraft <= 1}
+                                className="tap-shrink flex h-8 w-8 items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                              >
+                                <Minus size={14} />
+                              </button>
+                              <span className="w-8 text-center text-sm font-medium text-gray-800">
+                                {qtyDraft}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setQtyDraft((q) =>
+                                    Math.min(item.product.stock, q + 1)
+                                  )
+                                }
+                                disabled={qtyDraft >= item.product.stock}
+                                className="tap-shrink flex h-8 w-8 items-center justify-center text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+                              >
+                                <Plus size={14} />
+                              </button>
+                            </div>
+                            <button
+                              onClick={() => handleUpdateQty(item.id)}
+                              disabled={isUpdatingQty}
+                              className="tap-shrink rounded-lg bg-brand px-3 py-1.5 text-xs font-semibold text-white hover:bg-brand-dark disabled:opacity-60"
+                            >
+                              {isUpdatingQty ? "Updating..." : "Update"}
+                            </button>
+                          </div>
+                        ) : (
+                          <p className="text-xs text-gray-400">
+                            Qty: {item.quantity}
+                          </p>
+                        )}
                       </div>
                     </div>
                   );
@@ -466,12 +604,21 @@ export default function CheckoutPage() {
                   <div>
                     <div className="mb-3 flex items-center justify-between">
                       <span className="text-xs font-medium text-gray-500">
-                        {addresses.length === 0
-                          ? "Add a delivery address"
+                        {showForm
+                          ? editingAddressId
+                            ? "Edit address"
+                            : "Add a delivery address"
                           : "Choose an address"}
                       </span>
                       <button
-                        onClick={() => setShowForm((prev) => !prev)}
+                        onClick={() => {
+                          if (showForm) {
+                            setShowForm(false);
+                            setEditingAddressId(null);
+                          } else {
+                            openAddAddressForm();
+                          }
+                        }}
                         className="text-sm font-medium text-brand hover:underline"
                       >
                         {showForm ? "Cancel" : "+ Add New"}
@@ -499,7 +646,7 @@ export default function CheckoutPage() {
                               }}
                               className="mt-1"
                             />
-                            <div className="text-sm">
+                            <div className="flex-1 text-sm">
                               <p className="font-medium text-gray-800">
                                 {address.fullName} · {address.phone}
                               </p>
@@ -507,6 +654,17 @@ export default function CheckoutPage() {
                                 {address.completeAddress}
                               </p>
                             </div>
+                            <button
+                              type="button"
+                              onClick={(e) => {
+                                e.preventDefault();
+                                openEditAddressForm(address);
+                              }}
+                              className="flex shrink-0 items-center gap-1 text-xs font-semibold text-brand hover:underline"
+                            >
+                              <Pencil size={12} />
+                              Edit
+                            </button>
                           </label>
                         ))}
                       </div>
@@ -642,9 +800,14 @@ export default function CheckoutPage() {
 
                         <button
                           type="submit"
-                          className="rounded-lg bg-brand py-2.5 font-semibold text-white hover:bg-brand-dark sm:col-span-2"
+                          disabled={isSavingAddress}
+                          className="rounded-lg bg-brand py-2.5 font-semibold text-white hover:bg-brand-dark disabled:opacity-60 sm:col-span-2"
                         >
-                          Save Address
+                          {isSavingAddress
+                            ? "Saving..."
+                            : editingAddressId
+                            ? "Update Address"
+                            : "Save Address"}
                         </button>
                       </form>
                     )}
@@ -744,6 +907,9 @@ export default function CheckoutPage() {
                     checked={paymentMethod === "COD"}
                     onChange={() => setPaymentMethod("COD")}
                   />
+                  <span className="w-16 shrink-0 font-semibold text-gray-800">
+                    {formatCurrency(subtotal)}
+                  </span>
                   <div>
                     <p className="font-medium text-gray-800">
                       Cash on Delivery
@@ -767,12 +933,27 @@ export default function CheckoutPage() {
                     checked={paymentMethod === "RAZORPAY"}
                     onChange={() => setPaymentMethod("RAZORPAY")}
                   />
-                  <div>
+                  <div className="w-16 shrink-0">
+                    {prepaidAmount < subtotal && (
+                      <p className="text-xs text-gray-400 line-through">
+                        {formatCurrency(subtotal)}
+                      </p>
+                    )}
+                    <p className="font-semibold text-green-600">
+                      {formatCurrency(prepaidAmount)}
+                    </p>
+                  </div>
+                  <div className="flex-1">
                     <p className="font-medium text-gray-800">Pay Online</p>
                     <p className="text-xs text-gray-500">
                       UPI, Cards, Netbanking &amp; wallets via Razorpay
                     </p>
                   </div>
+                  {prepaidAmount < subtotal && (
+                    <span className="shrink-0 rounded bg-green-50 px-2 py-1 text-xs font-semibold text-green-700">
+                      Save {formatCurrency(PREPAID_DISCOUNT)}
+                    </span>
+                  )}
                 </label>
               </div>
             </div>
@@ -787,17 +968,27 @@ export default function CheckoutPage() {
                   <span>Product Price</span>
                   <span>+ {formatCurrency(mrpTotal)}</span>
                 </div>
-                {totalDiscount > 0 && (
+                {mrpTotal - payableAmount > 0 && (
                   <div className="flex justify-between text-green-600">
                     <span>Total Discounts</span>
-                    <span>- {formatCurrency(totalDiscount)}</span>
+                    <span>- {formatCurrency(mrpTotal - payableAmount)}</span>
                   </div>
                 )}
                 <div className="flex justify-between border-t pt-2 font-semibold text-gray-900">
                   <span>Order Total</span>
-                  <span>{formatCurrency(subtotal)}</span>
+                  <span>{formatCurrency(payableAmount)}</span>
                 </div>
               </div>
+
+              {mrpTotal - payableAmount > 0 && (
+                <div className="mt-4 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2 text-sm font-medium text-green-700">
+                  <span>✅</span>
+                  <span>
+                    Yay! Your total discount is{" "}
+                    {formatCurrency(mrpTotal - payableAmount)}
+                  </span>
+                </div>
+              )}
 
               <button
                 onClick={handlePlaceOrder}

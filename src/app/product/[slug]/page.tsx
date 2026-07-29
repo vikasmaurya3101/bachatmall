@@ -7,6 +7,7 @@ import ProductRating from "@/components/product/ProductRating";
 import ProductGrid from "@/components/product/ProductGrid";
 import ProductActions from "@/components/product/ProductActions";
 import TrackProductView from "@/components/product/TrackProductView";
+import ProductReviews from "@/components/product/ProductReviews";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
@@ -27,6 +28,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
   if (!product) {
     notFound();
   }
+
+  const reviewsPage = serializeData(
+    await productService.getProductReviews(product.id, 1, 5)
+  );
+  const reviewSummary = serializeData(
+    await productService.getReviewSummary(product.id)
+  );
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
@@ -103,6 +111,13 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </div>
           </div>
         </div>
+
+        <ProductReviews
+          productId={product.id}
+          initialReviews={reviewsPage.data}
+          initialSummary={reviewSummary}
+          initialTotalPages={reviewsPage.totalPages}
+        />
 
         {product.relatedProducts && product.relatedProducts.length > 0 && (
           <section className="mt-8">

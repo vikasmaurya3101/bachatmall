@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
 import { notifyAdminsOfNewOrder } from "@/lib/notify";
+import { getPrepaidAmount } from "@/lib/utils/discount";
 
 interface RazorpayPaymentDetails {
   razorpayOrderId?: string;
@@ -119,11 +120,15 @@ export class CheckoutService {
       };
     });
 
-    const discountAmount = mrpTotal.sub(subtotal);
-    // No tax or shipping charge is added — customer pays the product subtotal only.
+    // No tax or shipping charge is added — customer pays the product subtotal,
+    // minus a flat extra discount when paying online (prepaid).
     const shippingCharge = new Prisma.Decimal(0);
     const taxTotal = new Prisma.Decimal(0);
-    const totalAmount = subtotal;
+    const totalAmount =
+      paymentMethod === "RAZORPAY"
+        ? new Prisma.Decimal(getPrepaidAmount(subtotal.toNumber()))
+        : subtotal;
+    const discountAmount = mrpTotal.sub(totalAmount);
 
     const order = await prisma.$transaction(async (tx) => {
       const created = await tx.order.create({

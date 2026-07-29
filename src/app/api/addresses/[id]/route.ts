@@ -36,9 +36,24 @@ export async function PATCH(
       });
     }
 
+    // Merge incoming changes onto the existing record so we can rebuild
+    // completeAddress from the full, up-to-date set of fields — otherwise
+    // it goes stale whenever only some fields are edited.
+    const merged = { ...existing, ...body };
+
+    const completeAddress = [
+      merged.houseNumber,
+      merged.apartment,
+      merged.area,
+      merged.landmark,
+      `${merged.city}, ${merged.state} - ${merged.pincode}`,
+    ]
+      .filter(Boolean)
+      .join(", ");
+
     const address = await prisma.address.update({
       where: { id },
-      data: body,
+      data: { ...body, completeAddress },
     });
 
     return NextResponse.json({ success: true, data: address });
