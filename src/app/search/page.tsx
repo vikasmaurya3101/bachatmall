@@ -51,7 +51,7 @@ function SearchContent() {
   }
 
   return (
-    <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <main className="min-h-screen bg-white p-4 sm:p-6">
       <div className="mx-auto max-w-7xl">
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
           <h1 className="text-lg font-semibold text-gray-800">

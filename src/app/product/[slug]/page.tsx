@@ -7,10 +7,19 @@ import ProductRating from "@/components/product/ProductRating";
 import ProductGrid from "@/components/product/ProductGrid";
 import ProductActions from "@/components/product/ProductActions";
 import TrackProductView from "@/components/product/TrackProductView";
-import ProductReviews from "@/components/product/ProductReviews";
 
 interface ProductPageProps {
   params: Promise<{ slug: string }>;
+}
+
+function getEstimatedDelivery() {
+  const date = new Date();
+  date.setDate(date.getDate() + 5);
+  return date.toLocaleDateString("en-IN", {
+    weekday: "long",
+    day: "2-digit",
+    month: "short",
+  });
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
@@ -29,19 +38,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
     notFound();
   }
 
-  const reviewsPage = serializeData(
-    await productService.getProductReviews(product.id, 1, 5)
-  );
-  const reviewSummary = serializeData(
-    await productService.getReviewSummary(product.id)
-  );
-
   return (
-    <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
+    <main className="min-h-screen bg-white p-4 sm:p-6">
       <TrackProductView productId={product.id} />
 
       <div className="mx-auto max-w-6xl">
-        <div className="grid gap-8 rounded-xl bg-white p-5 sm:p-8 lg:grid-cols-2">
+        <div className="grid gap-8 rounded-xl border border-gray-100 bg-white p-5 shadow-sm sm:p-8 lg:grid-cols-2">
           <ProductImageGallery
             images={product.images}
             productName={product.name}
@@ -92,6 +94,22 @@ export default async function ProductPage({ params }: ProductPageProps) {
               )}
             </p>
 
+            <div className="mt-4 flex items-center gap-2 rounded-lg bg-gray-50 px-3 py-2 text-sm text-gray-600">
+              <span>🚚</span>
+              <span>
+                Estimated Delivery by{" "}
+                <span className="font-medium text-gray-800">
+                  {getEstimatedDelivery()}
+                </span>
+              </span>
+            </div>
+
+            {product.seller?.businessName && (
+              <p className="mt-2 text-xs text-gray-400">
+                Sold by: {product.seller.businessName}
+              </p>
+            )}
+
             <div className="mt-6">
               <ProductActions
                 productId={product.id}
@@ -100,6 +118,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
                 inStock={product.stock > 0}
               />
             </div>
+
+            {product.freeShipping && (
+              <p className="mt-3 text-xs font-semibold text-success">
+                Free Shipping on this item
+              </p>
+            )}
 
             <div className="mt-8 border-t pt-6">
               <h2 className="mb-2 font-semibold text-gray-800">
@@ -111,13 +135,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
             </div>
           </div>
         </div>
-
-        <ProductReviews
-          productId={product.id}
-          initialReviews={reviewsPage.data}
-          initialSummary={reviewSummary}
-          initialTotalPages={reviewsPage.totalPages}
-        />
 
         {product.relatedProducts && product.relatedProducts.length > 0 && (
           <section className="mt-8">
