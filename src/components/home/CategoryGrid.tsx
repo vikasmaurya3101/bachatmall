@@ -33,10 +33,13 @@ const ICONS: Record<string, LucideIcon> = {
   automotive: Car,
 };
 
-const TINTS = [
-  { bg: "bg-brand-50", fg: "text-brand" },
-  { bg: "bg-accent-50", fg: "text-accent" },
-  { bg: "bg-amber-50", fg: "text-gold-dark" },
+// Warm gradient fallbacks (used when a category has no photo yet) — cycles
+// through so neighboring tiles never repeat the same look.
+const GRADIENTS = [
+  "from-brand to-brand-dark",
+  "from-accent to-accent-dark",
+  "from-gold to-gold-dark",
+  "from-brand-400 to-accent",
 ];
 
 export default function CategoryGrid({ categories }: CategoryGridProps) {
@@ -45,37 +48,45 @@ export default function CategoryGrid({ categories }: CategoryGridProps) {
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <h2 className="text-2xl font-bold text-gray-800 sm:text-3xl">
-        Browse Categories
+        Top Categories
       </h2>
 
-      <div className="mt-6 grid grid-cols-3 gap-4 sm:grid-cols-4 md:grid-cols-6 lg:grid-cols-8">
+      <div className="mt-6 flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-8">
         {categories.map((category, index) => {
           const Icon = ICONS[category.slug] ?? Package;
-          const tint = TINTS[index % TINTS.length];
+          const gradient = GRADIENTS[index % GRADIENTS.length];
 
           return (
             <Link
               key={category.id}
               href={`/category/${category.slug}`}
-              className="flex flex-col items-center gap-2 rounded-xl bg-white p-4 text-center shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+              className="group relative aspect-[4/5] w-32 shrink-0 overflow-hidden rounded-2xl shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg sm:w-auto"
             >
-              <div
-                className={`relative flex h-14 w-14 items-center justify-center overflow-hidden rounded-full ${tint.bg}`}
-              >
-                {category.image ? (
+              {category.image ? (
+                <>
                   <Image
                     src={category.image}
                     alt={category.name}
                     fill
-                    sizes="56px"
-                    className="object-cover"
+                    sizes="(max-width: 640px) 128px, 200px"
+                    className="object-cover transition duration-300 group-hover:scale-105"
                   />
-                ) : (
-                  <Icon size={26} className={tint.fg} strokeWidth={2} />
-                )}
-              </div>
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                </>
+              ) : (
+                <div
+                  className={`absolute inset-0 flex items-center justify-center bg-gradient-to-br ${gradient}`}
+                >
+                  <Icon
+                    size={40}
+                    className="text-white/90 transition duration-300 group-hover:scale-110"
+                    strokeWidth={1.75}
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/40 via-transparent to-transparent" />
+                </div>
+              )}
 
-              <span className="line-clamp-2 text-xs font-medium text-gray-700 sm:text-sm">
+              <span className="absolute inset-x-0 bottom-0 line-clamp-2 p-3 text-sm font-semibold text-white drop-shadow-sm">
                 {category.name}
               </span>
             </Link>
