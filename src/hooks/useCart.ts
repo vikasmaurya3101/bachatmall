@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import { useSession } from "@/providers/SessionProvider";
 import { CartData } from "@/types/cart";
 
-const PENDING_CART_KEY = "bachatmall_pending_cart";
+const PENDING_CART_KEY = "shopka_pending_cart";
 
 interface ApiResponse<T> {
   success: boolean;

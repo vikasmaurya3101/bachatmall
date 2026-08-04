@@ -9,11 +9,11 @@ export default function Footer() {
         <div>
 
           <h2 className="mb-4 text-2xl font-extrabold text-brand">
-            BachatMall
+            Shopka
           </h2>
 
           <p className="text-sm text-gray-600">
-            Sabse Sasta, Yahi Milega — unbeatable prices on
+            Smart Shopping Starts Here — unbeatable prices on
             quality products, delivered fast.
           </p>
 
@@ -83,7 +83,7 @@ export default function Footer() {
 
       <div className="border-t py-5 text-center text-sm text-gray-500">
 
-        © {new Date().getFullYear()} BachatMall.
+        © {new Date().getFullYear()} Shopka.
         All Rights Reserved.
 
       </div>

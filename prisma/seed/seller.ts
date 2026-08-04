@@ -26,7 +26,7 @@ export async function seedSeller(
     update: {},
     create: {
       userId: user.id,
-      businessName: "BachatMall Official Store",
+      businessName: "Shopka Official Store",
       gstNumber: "22AAAAA0000A1Z5",
       isApproved: true,
     },

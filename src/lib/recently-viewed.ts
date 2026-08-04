@@ -1,4 +1,4 @@
-const STORAGE_KEY = "bachatmall_recently_viewed";
+const STORAGE_KEY = "shopka_recently_viewed";
 const MAX_ITEMS = 10;
 
 export function trackProductView(productId: string) {

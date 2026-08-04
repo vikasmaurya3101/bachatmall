@@ -57,7 +57,7 @@ export function middleware(request: NextRequest) {
   }
 
   const session =
-    request.cookies.get("bachatmall_session");
+    request.cookies.get("shopka_session");
 
   if (!session) {
     const loginUrl = new URL("/login", request.url);

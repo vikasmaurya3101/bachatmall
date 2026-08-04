@@ -27,7 +27,7 @@ export default function Logo({
       >
         <Image
           src="/brand/logo-128.png"
-          alt="BachatMall"
+          alt="Shopka"
           fill
           sizes={`${size}px`}
           className="object-cover"
@@ -40,9 +40,9 @@ export default function Logo({
           className="font-extrabold leading-none tracking-tight"
           style={{ fontSize: size * 0.55 }}
         >
-          <span className="text-gray-900">Bachat</span>
+          <span className="text-gray-900">Shop</span>
           <span className="bg-gradient-to-r from-brand to-pink-500 bg-clip-text text-transparent">
-            Mall
+            ka
           </span>
         </span>
       )}

@@ -2,7 +2,7 @@ import Link from "next/link";
 import { CheckCircle2 } from "lucide-react";
 
 export const metadata = {
-  title: "Welcome | BachatMall",
+  title: "Welcome | Shopka",
 };
 
 export default function WelcomePage() {
@@ -11,7 +11,7 @@ export default function WelcomePage() {
       <CheckCircle2 size={56} className="text-success" />
 
       <h1 className="text-2xl font-bold text-gray-800 sm:text-3xl">
-        Welcome to BachatMall!
+        Welcome to Shopka!
       </h1>
 
       <p className="max-w-md text-gray-600">

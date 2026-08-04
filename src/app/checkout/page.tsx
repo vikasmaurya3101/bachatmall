@@ -313,7 +313,7 @@ export default function CheckoutPage() {
         amount,
         currency,
         order_id: orderId,
-        name: "BachatMall",
+        name: "Shopka",
         description: "Order payment",
         image: "/brand/logo-128.png",
         prefill: {

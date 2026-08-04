@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Return & Refund Policy | BachatMall",
+  title: "Return & Refund Policy | Shopka",
 };
 
 export default function ReturnsPage() {

@@ -1,14 +1,14 @@
 import { Mail } from "lucide-react";
 
 export const metadata = {
-  title: "Careers | BachatMall",
+  title: "Careers | Shopka",
 };
 
 export default function CareersPage() {
   return (
     <main className="flex min-h-screen flex-col items-center justify-center gap-4 bg-gray-50 px-4 py-12 text-center">
       <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-        Careers at BachatMall
+        Careers at Shopka
       </h1>
 
       <p className="max-w-md text-gray-600">

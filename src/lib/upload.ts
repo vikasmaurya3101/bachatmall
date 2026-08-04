@@ -33,7 +33,7 @@ export interface UploadResult {
  */
 export async function uploadImage(
   source: string,
-  folder = "bachatmall/products"
+  folder = "shopka/products"
 ): Promise<UploadResult> {
   ensureConfigured();
 

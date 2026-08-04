@@ -23,7 +23,7 @@ export class SmsProvider extends BaseOtpProvider {
       },
       body: JSON.stringify({
         to: phone,
-        message: `Your BachatMall OTP is ${otp}. It expires in 5 minutes.`,
+        message: `Your Shopka OTP is ${otp}. It expires in 5 minutes.`,
       }),
     });
 

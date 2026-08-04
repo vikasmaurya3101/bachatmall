@@ -171,20 +171,20 @@ export function imageData(
 export function seoTitle(
   product: string
 ) {
-  return `Buy ${product} Online at Best Price | BachatMall`;
+  return `Buy ${product} Online at Best Price | Shopka`;
 }
 
 export function seoDescription(
   product: string
 ) {
-  return `Shop ${product} online from BachatMall with best prices, secure payment and fast delivery.`;
+  return `Shop ${product} online from Shopka with best prices, secure payment and fast delivery.`;
 }
 
 export function keywords(
   product: string,
   category: string
 ) {
-  return `${product}, ${category}, online shopping, India, BachatMall`;
+  return `${product}, ${category}, online shopping, India, Shopka`;
 }
 export async function createProduct(
   prisma: PrismaClient,

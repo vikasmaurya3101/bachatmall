@@ -9,7 +9,7 @@ export default function BestSellerProducts({
   return (
     <ProductRail
       title="Best Sellers"
-      subtitle="Most loved by BachatMall customers"
+      subtitle="Most loved by Shopka customers"
       products={products}
       viewAllHref="/search?bestSeller=true"
     />

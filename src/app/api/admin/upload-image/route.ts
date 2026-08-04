@@ -23,7 +23,7 @@ export async function POST(req: NextRequest) {
       cloudinary.uploader
         .upload_stream(
           {
-            folder: "bachatmall/products",
+            folder: "shopka/products",
             transformation: [{ width: 800, crop: "limit", quality: "auto:good", fetch_format: "auto" }],
           },
           (error, result) => {

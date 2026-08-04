@@ -5,13 +5,13 @@ existing `/login` UI. Do this once before you deploy:
 
 ## 1. Create a Firebase project
 1. Go to https://console.firebase.google.com → **Add project** → name it
-   (e.g. `bachatmall`) → finish the wizard.
+   (e.g. `shopka`) → finish the wizard.
 
 ## 2. Enable Phone sign-in
 1. In the left sidebar: **Build → Authentication → Get started**.
 2. Under **Sign-in method**, enable **Phone**.
 3. Under **Settings → Authorized domains**, add your production domain
-   (e.g. `bachatmall.vercel.app`) — `localhost` is already allowed.
+   (e.g. `shopka.vercel.app`) — `localhost` is already allowed.
 
 > Firebase's free (Spark) plan includes a small number of free SMS/month for
 > testing. For production volume, upgrade to Blaze (pay-as-you-go).

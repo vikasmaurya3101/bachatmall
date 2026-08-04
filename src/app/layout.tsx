@@ -18,12 +18,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://shopka.in"),
   title: {
-    default: "BachatMall — Sabse Sasta, Sabse Achha",
-    template: "%s | BachatMall",
+    default: "Shopka — Smart Shopping Starts Here",
+    template: "%s | Shopka",
   },
   description:
-    "Sabse Sasta, Sabse Achha — India's trusted online shopping destination for best prices, fast delivery & 24x7 support.",
+    "Smart Shopping Starts Here — India's trusted online shopping destination for best prices, fast delivery & 24x7 support.",
   icons: {
     icon: [
       { url: "/brand/logo-32.png", sizes: "32x32", type: "image/png" },
@@ -33,7 +34,7 @@ export const metadata: Metadata = {
   },
   manifest: "/site.webmanifest",
   openGraph: {
-    title: "BachatMall — Sabse Sasta, Sabse Achha",
+    title: "Shopka — Smart Shopping Starts Here",
     description:
       "India's trusted online shopping destination for best prices, fast delivery & 24x7 support.",
     images: [{ url: "/brand/og-image.png", width: 1200, height: 630 }],

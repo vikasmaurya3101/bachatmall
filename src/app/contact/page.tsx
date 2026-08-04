@@ -1,7 +1,7 @@
 import { Mail, MapPin } from "lucide-react";
 
 export const metadata = {
-  title: "Contact Us | BachatMall",
+  title: "Contact Us | Shopka",
 };
 
 export default function ContactPage() {

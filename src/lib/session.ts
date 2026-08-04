@@ -5,7 +5,7 @@ const secret = new TextEncoder().encode(
   process.env.NEXTAUTH_SECRET
 );
 
-const COOKIE_NAME = "bachatmall_session";
+const COOKIE_NAME = "shopka_session";
 const SESSION_DAYS = 30;
 
 export interface SessionPayload extends JWTPayload {

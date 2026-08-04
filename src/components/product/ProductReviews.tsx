@@ -22,7 +22,7 @@ const BREAKDOWN_ROWS: { key: keyof ReviewSummaryData["ratingBreakdown"]; label: 
 
 function reviewerName(user: ReviewData["user"]) {
   const name = [user.firstName, user.lastName].filter(Boolean).join(" ").trim();
-  return name || "BachatMall User";
+  return name || "Shopka User";
 }
 
 export default function ProductReviews({

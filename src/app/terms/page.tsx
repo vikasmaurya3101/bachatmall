@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Terms of Service | BachatMall",
+  title: "Terms of Service | Shopka",
 };
 
 export default function TermsPage() {
@@ -24,7 +24,7 @@ export default function TermsPage() {
               1. Acceptance of Terms
             </h2>
             <p>
-              By creating an account or placing an order on BachatMall, you
+              By creating an account or placing an order on Shopka, you
               agree to these Terms of Service and our Return &amp; Refund
               Policy.
             </p>
@@ -82,7 +82,7 @@ export default function TermsPage() {
               6. Limitation of Liability
             </h2>
             <p>
-              BachatMall is not liable for indirect or incidental damages
+              Shopka is not liable for indirect or incidental damages
               arising from the use of our platform, to the maximum extent
               permitted by applicable law.
             </p>
@@ -94,7 +94,7 @@ export default function TermsPage() {
             </h2>
             <p>
               We may update these terms from time to time. Continued use of
-              BachatMall after changes means you accept the updated terms.
+              Shopka after changes means you accept the updated terms.
             </p>
           </section>
 

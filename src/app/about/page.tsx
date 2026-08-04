@@ -1,7 +1,7 @@
 import { Heart, ShieldCheck, Truck } from "lucide-react";
 
 export const metadata = {
-  title: "About Us | BachatMall",
+  title: "About Us | Shopka",
 };
 
 export default function AboutPage() {
@@ -9,20 +9,20 @@ export default function AboutPage() {
     <main className="min-h-screen bg-gray-50 px-4 py-12 sm:px-6">
       <div className="mx-auto max-w-3xl">
         <h1 className="text-3xl font-extrabold text-gray-900 sm:text-4xl">
-          About BachatMall
+          About Shopka
         </h1>
 
         <p className="mt-6 text-gray-600">
-          BachatMall was started with one simple idea:{" "}
+          Shopka was started with one simple idea:{" "}
           <span className="font-semibold text-brand">
-            Sabse Sasta, Yahi Milega
+            Smart Shopping Starts Here
           </span>{" "}
           — everyday products at prices that actually make sense, without
           compromising on quality.
         </p>
 
         <p className="mt-4 text-gray-600">
-          We handpick every product listed on BachatMall, negotiate directly
+          We handpick every product listed on Shopka, negotiate directly
           with suppliers to cut out unnecessary markups, and pass those
           savings straight to you. No middlemen, no inflated prices —
           just honest deals on the things you buy every day.

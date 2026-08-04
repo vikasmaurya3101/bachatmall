@@ -15,9 +15,9 @@ export default function Hero() {
         </span>
 
         <h1 className="mt-5 max-w-2xl text-4xl font-extrabold leading-[1.05] tracking-tight sm:text-6xl">
-          Sabse Sasta,
+          Smart Shopping
           <br />
-          Yahi Milega.
+          Starts Here.
         </h1>
 
         <p className="mt-6 max-w-xl text-base text-white/85 sm:text-lg">

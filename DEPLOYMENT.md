@@ -1,4 +1,4 @@
-# Deploying BachatMall
+# Deploying Shopka
 
 This is a full-stack Next.js app (App Router) with a Postgres database via
 Prisma — not a static frontend, so it needs a Node host, not just a CDN.
@@ -6,10 +6,10 @@ Prisma — not a static frontend, so it needs a Node host, not just a CDN.
 
 ## 1. Push the code to GitHub
 ```bash
-cd bachatmall
+cd shopka
 git init
 git add .
-git commit -m "BachatMall — Firebase auth, saved addresses, Razorpay, new logo"
+git commit -m "Shopka — Firebase auth, saved addresses, Razorpay, new logo"
 git remote add origin <your-empty-github-repo-url>
 git push -u origin main
 ```
@@ -25,7 +25,7 @@ git push -u origin main
 | Variable | Where to get it |
 |---|---|
 | `DATABASE_URL`, `DIRECT_URL` | Your Postgres provider (Supabase/Neon/Railway) |
-| `NEXTAUTH_URL` | Your production URL, e.g. `https://bachatmall.vercel.app` |
+| `NEXTAUTH_URL` | Your production URL, e.g. `https://shopka.vercel.app` |
 | `NEXTAUTH_SECRET` | `openssl rand -base64 32` |
 | `GOOGLE_CLIENT_ID` / `_SECRET` | Google Cloud Console (optional, for Google login) |
 | `NEXT_PUBLIC_FIREBASE_*` (6 vars) | Firebase Console — see `FIREBASE_SETUP.md` |
