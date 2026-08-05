@@ -1,5 +1,7 @@
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
+import fs from "node:fs";
+import path from "node:path";
 
 /**
  * Firebase Admin is used server-side only, to verify the ID token the
@@ -28,8 +30,9 @@ function loadServiceAccount() {
   }
 
   try {
-    // eslint-disable-next-line @typescript-eslint/no-require-imports
-    return require("../../firebase-service-account.json");
+    const filePath = path.join(process.cwd(), "firebase-service-account.json");
+    const raw = fs.readFileSync(filePath, "utf-8");
+    return JSON.parse(raw);
   } catch {
     return null;
   }
