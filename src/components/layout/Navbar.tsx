@@ -6,8 +6,13 @@ import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import {
   ChevronRight,
+  Heart,
+  HelpCircle,
   LogOut,
+  Mail,
+  MapPin,
   Menu,
+  MoreVertical,
   Package,
   Search,
   ShoppingCart,
@@ -26,7 +31,16 @@ export default function Navbar() {
   const { logout } = useAuth();
 
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [quickMenuOpen, setQuickMenuOpen] = useState(false);
   const [query, setQuery] = useState("");
+
+  const QUICK_LINKS = [
+    { label: "Saved Addresses", href: "/profile/addresses", icon: MapPin },
+    { label: "Wishlist", href: "/profile", icon: Heart },
+    { label: "Orders", href: "/orders", icon: Package },
+    { label: "Contact Us", href: "/contact", icon: Mail },
+    { label: "Help & Support", href: "/help", icon: HelpCircle },
+  ];
 
   function handleSearch(e: React.FormEvent) {
     e.preventDefault();
@@ -107,6 +121,47 @@ export default function Navbar() {
               <User size={20} />
               Profile
             </Link>
+
+            <div className="relative">
+              <button
+                onClick={() => setQuickMenuOpen((v) => !v)}
+                className="tap-shrink rounded-full p-1.5 transition hover:bg-brand-50 hover:text-brand"
+                aria-label="More options"
+                aria-expanded={quickMenuOpen}
+              >
+                <MoreVertical size={20} />
+              </button>
+
+              <AnimatePresence>
+                {quickMenuOpen && (
+                  <>
+                    <div
+                      className="fixed inset-0 z-40"
+                      onClick={() => setQuickMenuOpen(false)}
+                    />
+                    <motion.div
+                      initial={{ opacity: 0, y: -8, scale: 0.97 }}
+                      animate={{ opacity: 1, y: 0, scale: 1 }}
+                      exit={{ opacity: 0, y: -8, scale: 0.97 }}
+                      transition={{ duration: 0.15 }}
+                      className="absolute right-0 top-full z-50 mt-2 w-56 overflow-hidden rounded-xl border bg-white py-1.5 shadow-xl"
+                    >
+                      {QUICK_LINKS.map(({ label, href, icon: Icon }) => (
+                        <Link
+                          key={label}
+                          href={href}
+                          onClick={() => setQuickMenuOpen(false)}
+                          className="flex items-center gap-3 px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-brand-50 hover:text-brand"
+                        >
+                          <Icon size={16} />
+                          {label}
+                        </Link>
+                      ))}
+                    </motion.div>
+                  </>
+                )}
+              </AnimatePresence>
+            </div>
           </div>
 
           <button

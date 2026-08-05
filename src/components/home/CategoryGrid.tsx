@@ -60,7 +60,7 @@ export default function CategoryGrid({ categories }: CategoryGridProps) {
             <Link
               key={category.id}
               href={`/category/${category.slug}`}
-              className="group relative aspect-[4/5] w-32 shrink-0 overflow-hidden rounded-2xl shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg sm:w-auto"
+              className="group relative aspect-[4/5] w-32 shrink-0 overflow-hidden shadow-sm transition duration-200 hover:-translate-y-1 hover:shadow-lg sm:w-auto"
             >
               {category.image ? (
                 <>

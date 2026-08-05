@@ -2,6 +2,9 @@ import { Suspense } from "react";
 import { getHomeData } from "@/actions/get-home-data";
 import LoginRequiredNotice from "@/components/shared/LoginRequiredNotice";
 import Hero from "@/components/home/Hero";
+import CategoryIconRow from "@/components/home/CategoryIconRow";
+import TrustBadgeStrip from "@/components/home/TrustBadgeStrip";
+import ChampionCategories from "@/components/home/ChampionCategories";
 import CategoryGrid from "@/components/home/CategoryGrid";
 import FlashSale from "@/components/home/FlashSale";
 import FeaturedProducts from "@/components/home/FeaturedProducts";
@@ -33,6 +36,9 @@ export default async function HomePage() {
         <LoginRequiredNotice />
       </Suspense>
       <Hero />
+      <CategoryIconRow categories={categories} />
+      <TrustBadgeStrip />
+      <ChampionCategories products={featuredProducts} />
       <CategoryGrid categories={categories} />
       <FlashSale products={flashSaleProducts} endsAt={flashSaleEndsAt} />
       <FeaturedProducts products={featuredProducts} />
