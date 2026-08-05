@@ -11,6 +11,17 @@ interface Category {
   name: string;
 }
 
+interface SubCategory {
+  id: string;
+  name: string;
+  categoryId: string;
+}
+
+interface Brand {
+  id: string;
+  name: string;
+}
+
 function slugify(text: string) {
   return text
     .toLowerCase()
@@ -27,6 +38,8 @@ export default function NewProductPage() {
     isAuthenticated && (user?.role === "ADMIN" || user?.role === "SELLER");
 
   const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
   const [linkUrl, setLinkUrl] = useState("");
   const [isFetchingLink, setIsFetchingLink] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
@@ -38,6 +51,8 @@ export default function NewProductPage() {
     description: "",
     sku: "",
     categoryId: "",
+    subCategoryId: "",
+    brandId: "",
     mrp: "",
     sellingPrice: "",
     stock: "10",
@@ -53,7 +68,30 @@ export default function NewProductPage() {
       .then((json) => {
         if (json.success) setCategories(json.data);
       });
+
+    fetch("/api/admin/catalog/subcategories")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success)
+          setSubCategories(
+            json.data.map((s: { id: string; name: string; categoryId: string }) => ({
+              id: s.id,
+              name: s.name,
+              categoryId: s.categoryId,
+            }))
+          );
+      });
+
+    fetch("/api/admin/catalog/brands")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) setBrands(json.data);
+      });
   }, [isAuthorized]);
+
+  const filteredSubCategories = subCategories.filter(
+    (s) => s.categoryId === form.categoryId
+  );
 
   function updateField<K extends keyof typeof form>(
     key: K,
@@ -166,6 +204,8 @@ export default function NewProductPage() {
           description: form.description,
           sku: form.sku,
           categoryId: form.categoryId,
+          subCategoryId: form.subCategoryId || undefined,
+          brandId: form.brandId || undefined,
           mrp: Number(form.mrp),
           sellingPrice: Number(form.sellingPrice),
           stock: Number(form.stock),
@@ -339,7 +379,10 @@ export default function NewProductPage() {
               </label>
               <select
                 value={form.categoryId}
-                onChange={(e) => updateField("categoryId", e.target.value)}
+                onChange={(e) => {
+                  updateField("categoryId", e.target.value);
+                  updateField("subCategoryId", "");
+                }}
                 required
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
               >
@@ -347,6 +390,47 @@ export default function NewProductPage() {
                 {categories.map((c) => (
                   <option key={c.id} value={c.id}>
                     {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Subcategory
+              </label>
+              <select
+                value={form.subCategoryId}
+                onChange={(e) => updateField("subCategoryId", e.target.value)}
+                disabled={!form.categoryId}
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand disabled:bg-gray-100"
+              >
+                <option value="">
+                  {form.categoryId ? "None" : "Pick a category first"}
+                </option>
+                {filteredSubCategories.map((s) => (
+                  <option key={s.id} value={s.id}>
+                    {s.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1 block text-sm font-medium text-gray-700">
+                Brand
+              </label>
+              <select
+                value={form.brandId}
+                onChange={(e) => updateField("brandId", e.target.value)}
+                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+              >
+                <option value="">None</option>
+                {brands.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
                   </option>
                 ))}
               </select>

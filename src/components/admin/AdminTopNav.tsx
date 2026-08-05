@@ -29,6 +29,7 @@ const NAV_LINKS = [
   { href: "/admin", label: "Dashboard" },
   { href: "/admin/orders", label: "Orders" },
   { href: "/admin/products", label: "Products" },
+  { href: "/admin/catalog", label: "Catalog" },
   { href: "/admin/flash-sale", label: "Flash Sale" },
 ];
 

@@ -6,6 +6,22 @@ import { toast } from "sonner";
 import { useSession } from "@/providers/SessionProvider";
 import Loader from "@/components/ui/Loader";
 
+interface Category {
+  id: string;
+  name: string;
+}
+
+interface SubCategory {
+  id: string;
+  name: string;
+  categoryId: string;
+}
+
+interface Brand {
+  id: string;
+  name: string;
+}
+
 export default function EditProductPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
@@ -19,9 +35,16 @@ export default function EditProductPage() {
   const [isUploading, setIsUploading] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [subCategories, setSubCategories] = useState<SubCategory[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+
   const [form, setForm] = useState({
     name: "",
     description: "",
+    categoryId: "",
+    subCategoryId: "",
+    brandId: "",
     mrp: "",
     sellingPrice: "",
     stock: "",
@@ -48,6 +71,9 @@ export default function EditProductPage() {
         setForm({
           name: p.name ?? "",
           description: p.description ?? "",
+          categoryId: p.categoryId ?? "",
+          subCategoryId: p.subCategoryId ?? "",
+          brandId: p.brandId ?? "",
           mrp: String(p.mrp ?? ""),
           sellingPrice: String(p.sellingPrice ?? ""),
           stock: String(p.stock ?? "0"),
@@ -56,7 +82,36 @@ export default function EditProductPage() {
         });
       })
       .finally(() => setIsLoading(false));
+
+    fetch("/api/admin/categories")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) setCategories(json.data);
+      });
+
+    fetch("/api/admin/catalog/subcategories")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success)
+          setSubCategories(
+            json.data.map((s: { id: string; name: string; categoryId: string }) => ({
+              id: s.id,
+              name: s.name,
+              categoryId: s.categoryId,
+            }))
+          );
+      });
+
+    fetch("/api/admin/catalog/brands")
+      .then((res) => res.json())
+      .then((json) => {
+        if (json.success) setBrands(json.data);
+      });
   }, [id, isAuthorized]);
+
+  const filteredSubCategories = subCategories.filter(
+    (s) => s.categoryId === form.categoryId
+  );
 
   function updateField<K extends keyof typeof form>(
     key: K,
@@ -106,6 +161,9 @@ export default function EditProductPage() {
         body: JSON.stringify({
           name: form.name,
           description: form.description,
+          categoryId: form.categoryId || undefined,
+          subCategoryId: form.subCategoryId || null,
+          brandId: form.brandId || null,
           mrp: Number(form.mrp),
           sellingPrice: Number(form.sellingPrice),
           stock: Number(form.stock),
