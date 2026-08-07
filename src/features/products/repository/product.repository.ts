@@ -1053,6 +1053,20 @@ class ProductRepository {
     });
   }
 
+  async bulkReassign(
+    ids: string[],
+    categoryId: string,
+    subCategoryId: string | null
+  ) {
+    return prisma.product.updateMany({
+      where: { id: { in: ids } },
+      data: {
+        categoryId,
+        subCategoryId: subCategoryId ?? null,
+      },
+    });
+  }
+
   async toggleFeatured(
     id: string,
     value: boolean

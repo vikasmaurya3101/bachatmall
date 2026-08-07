@@ -4,8 +4,8 @@ import { useState, useEffect, useRef } from "react";
 import Image from "next/image";
 import { toast } from "sonner";
 import { useSession } from "@/providers/SessionProvider";
-import { Loader } from "@/components/ui/Loader";
-import { Modal } from "@/components/ui/Modal";
+import Loader from "@/components/ui/Loader";
+import Modal from "@/components/ui/Modal";
 import { Input } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 
@@ -71,7 +71,7 @@ const DEFAULT_FORM: BannerFormData = {
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function BannersPage() {
-  const { session, loading: sessionLoading } = useSession();
+  const { user, isAuthenticated, isLoading: sessionLoading } = useSession();
   const [banners, setBanners] = useState<Banner[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<BannerPosition | "ALL">("ALL");
@@ -84,11 +84,11 @@ export default function BannersPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    if (session?.role === "ADMIN") {
+    if (isAuthenticated && user?.role === "ADMIN") {
       fetchBanners();
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [session]);
+  }, [isAuthenticated, user]);
 
   // ─── Data fetching ──────────────────────────────────────────────────────────
 
@@ -275,7 +275,7 @@ export default function BannersPage() {
     );
   }
 
-  if (!session || session.role !== "ADMIN") {
+  if (!isAuthenticated || user?.role !== "ADMIN") {
     return (
       <div className="flex min-h-screen items-center justify-center bg-gray-50">
         <p className="text-gray-500 text-sm">No access.</p>

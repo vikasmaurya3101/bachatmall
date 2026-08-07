@@ -2,7 +2,10 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/providers/SessionProvider";
-import { Loader, Modal, Input, Button } from "@/components/ui/";
+import Loader from "@/components/ui/Loader";
+import Modal from "@/components/ui/Modal";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -68,7 +71,7 @@ const EMPTY_FORM: SaleForm = { name: "", startsAt: "", endsAt: "", isActive: tru
 // ─── Component ────────────────────────────────────────────────────────────────
 
 export default function FlashSalePage() {
-  const { session, loading } = useSession();
+  const { user, isAuthenticated, isLoading: loading } = useSession();
 
   // Flash sales list
   const [flashSales, setFlashSales] = useState<FlashSale[]>([]);
@@ -113,8 +116,8 @@ export default function FlashSalePage() {
   }, []);
 
   useEffect(() => {
-    if (session?.role === "ADMIN") fetchSales();
-  }, [session, fetchSales]);
+    if (isAuthenticated && user?.role === "ADMIN") fetchSales();
+  }, [isAuthenticated, user, fetchSales]);
 
   const fetchSaleDetail = useCallback(async (id: string) => {
     setManageLoading(true);
@@ -315,7 +318,7 @@ export default function FlashSalePage() {
     );
   }
 
-  if (!session || session.role !== "ADMIN") {
+  if (!isAuthenticated || user?.role !== "ADMIN") {
     return (
       <div className="flex items-center justify-center min-h-screen">
         <p className="text-gray-500 text-lg">No access.</p>
@@ -667,7 +670,7 @@ export default function FlashSalePage() {
 
 
       {/* ── Create Modal ───────────────────────────────────────────────── */}
-      <Modal isOpen={createOpen} onClose={() => setCreateOpen(false)} title="Create Flash Sale">
+      <Modal open={createOpen} onClose={() => setCreateOpen(false)} title="Create Flash Sale">
         <div className="space-y-4 p-1">
           <Input
             label="Name"
@@ -725,7 +728,7 @@ export default function FlashSalePage() {
 
       {/* ── Edit Modal ─────────────────────────────────────────────────── */}
       <Modal
-        isOpen={!!editSale}
+        open={!!editSale}
         onClose={() => setEditSale(null)}
         title="Edit Flash Sale"
       >
@@ -786,7 +789,7 @@ export default function FlashSalePage() {
 
       {/* ── Delete Confirm Modal ───────────────────────────────────────── */}
       <Modal
-        isOpen={!!deleteSale}
+        open={!!deleteSale}
         onClose={() => setDeleteSale(null)}
         title="Delete Flash Sale"
       >

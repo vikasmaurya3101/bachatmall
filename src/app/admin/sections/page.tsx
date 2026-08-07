@@ -2,7 +2,9 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useSession } from "@/providers/SessionProvider";
-import { Loader, Input, Button } from "@/components/ui/";
+import Loader from "@/components/ui/Loader";
+import { Input } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
 import { toast } from "sonner";
 import Image from "next/image";
 
@@ -51,7 +53,7 @@ const emptyRecord = <T,>(val: T): Record<SectionKey, T> => ({
 });
 
 export default function SectionsPage() {
-  const { session, loading } = useSession();
+  const { user, isAuthenticated, isLoading: loading } = useSession();
 
   const [activeSection, setActiveSection] = useState<SectionKey>("featured");
   const [sectionProducts, setSectionProducts] = useState<Record<SectionKey, Product[]>>(
@@ -89,10 +91,10 @@ export default function SectionsPage() {
   }, []);
 
   useEffect(() => {
-    if (session?.role === "ADMIN") {
+    if (isAuthenticated && user?.role === "ADMIN") {
       SECTIONS.forEach((s) => fetchSectionProducts(s.key));
     }
-  }, [session, fetchSectionProducts]);
+  }, [isAuthenticated, user, fetchSectionProducts]);
 
   // ---- search (debounced) --------------------------------------------------
 
@@ -177,3 +179,159 @@ export default function SectionsPage() {
       });
     }
   };
+
+  // ---- render --------------------------------------------------------------
+
+  if (loading) {
+    return (
+      <main className="min-h-screen bg-gray-50 p-6">
+        <Loader size="lg" />
+      </main>
+    );
+  }
+
+  if (!isAuthenticated || user?.role !== "ADMIN") {
+    return (
+      <main className="flex min-h-screen items-center justify-center bg-gray-50 p-6 text-center">
+        <p className="text-lg text-gray-600">You don&apos;t have access to this page.</p>
+      </main>
+    );
+  }
+
+  const activeConfig = SECTIONS.find((s) => s.key === activeSection)!;
+
+  return (
+    <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
+      <div className="mx-auto max-w-6xl">
+        <h1 className="mb-6 text-2xl font-bold text-gray-800 sm:text-3xl">
+          Homepage Sections
+        </h1>
+
+        {/* Section tabs */}
+        <div className="mb-6 flex gap-1 border-b">
+          {SECTIONS.map((s) => (
+            <button
+              key={s.key}
+              onClick={() => handleTabChange(s.key)}
+              className={`px-4 py-2.5 text-sm font-medium transition ${
+                activeSection === s.key
+                  ? "border-b-2 border-brand text-brand"
+                  : "text-gray-500 hover:text-gray-800"
+              }`}
+            >
+              {s.label}
+              <span className="ml-1.5 rounded-full bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">
+                {sectionCounts[s.key]}
+              </span>
+            </button>
+          ))}
+        </div>
+
+        <div className="grid gap-6 lg:grid-cols-2">
+          {/* Current section products */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+              In this section
+            </h2>
+            {sectionLoading[activeSection] ? (
+              <Loader size="lg" />
+            ) : sectionProducts[activeSection].length === 0 ? (
+              <p className="text-gray-400">No products in this section yet.</p>
+            ) : (
+              <div className="overflow-hidden rounded-xl border bg-white">
+                {sectionProducts[activeSection].map((p) => {
+                  const thumb = p.images.find((i) => i.isThumbnail)?.url ?? p.images[0]?.url;
+                  return (
+                    <div
+                      key={p.id}
+                      className="flex items-center gap-3 border-b p-3 last:border-0"
+                    >
+                      {thumb && (
+                        <Image
+                          src={thumb}
+                          alt={p.name}
+                          width={36}
+                          height={36}
+                          className="rounded-md object-cover"
+                        />
+                      )}
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-sm font-medium text-gray-800">
+                          {p.name}
+                        </div>
+                        <div className="text-xs text-gray-400">₹{p.sellingPrice}</div>
+                      </div>
+                      <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${activeConfig.badgeColor}`}>
+                        {activeConfig.label}
+                      </span>
+                      <button
+                        onClick={() => updateFlag(p.id, activeConfig.flag, false)}
+                        disabled={updatingIds.has(p.id)}
+                        className="rounded-lg border px-2 py-1 text-xs font-medium text-red-600 hover:bg-red-50 disabled:opacity-50"
+                      >
+                        {updatingIds.has(p.id) ? "…" : "Remove"}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
+          {/* Search to add */}
+          <div>
+            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-gray-500">
+              Add products
+            </h2>
+            <Input
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Search products to add…"
+            />
+            <div className="mt-3">
+              {searchLoading ? (
+                <Loader size="lg" />
+              ) : searchResults.length === 0 && searchQuery.trim() ? (
+                <p className="text-sm text-gray-400">No results.</p>
+              ) : (
+                <div className="overflow-hidden rounded-xl border bg-white">
+                  {searchResults.map((p) => {
+                    const thumb = p.images.find((i) => i.isThumbnail)?.url ?? p.images[0]?.url;
+                    return (
+                      <div
+                        key={p.id}
+                        className="flex items-center gap-3 border-b p-3 last:border-0"
+                      >
+                        {thumb && (
+                          <Image
+                            src={thumb}
+                            alt={p.name}
+                            width={36}
+                            height={36}
+                            className="rounded-md object-cover"
+                          />
+                        )}
+                        <div className="min-w-0 flex-1">
+                          <div className="truncate text-sm font-medium text-gray-800">
+                            {p.name}
+                          </div>
+                          <div className="text-xs text-gray-400">₹{p.sellingPrice}</div>
+                        </div>
+                        <Button
+                          onClick={() => updateFlag(p.id, activeConfig.flag, true)}
+                          disabled={updatingIds.has(p.id)}
+                        >
+                          {updatingIds.has(p.id) ? "Adding…" : "+ Add"}
+                        </Button>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </main>
+  );
+}

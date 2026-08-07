@@ -641,6 +641,18 @@ class ProductService {
     );
   }
 
+  async bulkReassign(
+    ids: string[],
+    categoryId: string,
+    subCategoryId: string | null
+  ) {
+    return productRepository.bulkReassign(
+      ids,
+      categoryId,
+      subCategoryId
+    );
+  }
+
   async toggleFeatured(
     id: string,
     value: boolean
