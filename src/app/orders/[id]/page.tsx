@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Image from "next/image";
 import { toast } from "sonner";
-import { OrderData } from "@/types/order";
+import { OrderData, OrderStatus } from "@/types/order";
 import { formatCurrency } from "@/lib/utils/currency";
 import Loader from "@/components/ui/Loader";
 
@@ -139,33 +139,137 @@ export default function OrderDetailPage() {
         </p>
 
         <div className="mb-4 rounded-xl border bg-white p-5">
-          <h2 className="mb-3 font-semibold text-gray-800">Status</h2>
-          <div className="flex flex-wrap gap-3 text-sm">
-            <span className="rounded-full bg-blue-100 px-3 py-1 font-medium text-blue-700">
-              Order: {order.orderStatus.replace(/_/g, " ")}
-            </span>
-            <span className="rounded-full bg-amber-100 px-3 py-1 font-medium text-amber-700">
+          <h2 className="mb-4 font-semibold text-gray-800">Order Status</h2>
+
+          {/* ── Cancelled / Returned banner ── */}
+          {(order.orderStatus === "CANCELLED" || order.orderStatus === "RETURNED" || order.orderStatus === "REFUNDED") ? (
+            <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 mb-4">
+              <div className="font-semibold mb-1">
+                {order.orderStatus === "CANCELLED" ? "Order Cancelled" :
+                 order.orderStatus === "RETURNED" ? "Return Requested" : "Order Refunded"}
+              </div>
+              {order.cancelReason && <p>Reason: {order.cancelReason}</p>}
+              {order.returnReason && <p>Reason: {order.returnReason}</p>}
+              {order.returnRequestedAt && (
+                <p className="text-xs text-red-500 mt-1">
+                  {new Date(order.returnRequestedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
+                </p>
+              )}
+            </div>
+          ) : null}
+
+          {/* ── Timeline ── */}
+          {order.orderStatus !== "CANCELLED" && order.orderStatus !== "REFUNDED" && (() => {
+            const STATUS_ORDER: OrderStatus[] = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"];
+            const currentIdx = STATUS_ORDER.indexOf(order.orderStatus);
+
+            const steps = [
+              {
+                label: "Order Placed",
+                subLabel: "Your order has been placed.",
+                status: "PENDING" as OrderStatus,
+                date: order.placedAt,
+              },
+              {
+                label: "Order Confirmed",
+                subLabel: "Seller is processing your order.",
+                status: "CONFIRMED" as OrderStatus,
+                date: null,
+              },
+              {
+                label: "Packed & Ready",
+                subLabel: "Item packed and waiting for pickup.",
+                status: "PROCESSING" as OrderStatus,
+                date: null,
+              },
+              {
+                label: "Shipped",
+                subLabel: "Item is on the way.",
+                status: "SHIPPED" as OrderStatus,
+                date: null,
+              },
+              {
+                label: "Out for Delivery",
+                subLabel: "Item is out for delivery today.",
+                status: "OUT_FOR_DELIVERY" as OrderStatus,
+                date: null,
+              },
+              {
+                label: "Delivered",
+                subLabel: "Item delivered successfully.",
+                status: "DELIVERED" as OrderStatus,
+                date: order.deliveredAt,
+              },
+            ];
+
+            return (
+              <div className="space-y-0">
+                {steps.map((step, idx) => {
+                  const stepIdx = STATUS_ORDER.indexOf(step.status);
+                  const isDone = currentIdx >= stepIdx;
+                  const isActive = currentIdx === stepIdx;
+                  const isLast = idx === steps.length - 1;
+
+                  return (
+                    <div key={step.status} className="flex gap-4">
+                      {/* Dot + line */}
+                      <div className="flex flex-col items-center">
+                        <div className={`relative z-10 flex h-5 w-5 items-center justify-center rounded-full border-2 flex-shrink-0 mt-0.5 ${
+                          isDone
+                            ? "border-green-500 bg-green-500"
+                            : "border-gray-300 bg-white"
+                        }`}>
+                          {isDone && (
+                            <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                            </svg>
+                          )}
+                          {isActive && !isDone && (
+                            <div className="h-2 w-2 rounded-full bg-brand animate-pulse" />
+                          )}
+                        </div>
+                        {!isLast && (
+                          <div className={`w-0.5 flex-1 my-1 ${isDone ? "bg-green-400" : "bg-gray-200"}`} style={{ minHeight: 28 }} />
+                        )}
+                      </div>
+
+                      {/* Content */}
+                      <div className={`pb-5 min-w-0 ${isLast ? "pb-0" : ""}`}>
+                        <div className={`text-sm font-semibold ${isDone ? "text-gray-900" : "text-gray-400"}`}>
+                          {step.label}
+                          {step.date && isDone && (
+                            <span className={`ml-2 font-normal text-xs ${isDone ? "text-gray-500" : "text-gray-300"}`}>
+                              {new Date(step.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}
+                              {" · "}
+                              {new Date(step.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                            </span>
+                          )}
+                        </div>
+                        <div className={`text-xs mt-0.5 ${isDone ? "text-gray-500" : "text-gray-300"}`}>
+                          {step.subLabel}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            );
+          })()}
+
+          {/* Payment badge */}
+          <div className="mt-4 flex flex-wrap gap-2 border-t pt-4 text-xs">
+            <span className={`rounded-full px-3 py-1 font-medium ${
+              order.paymentStatus === "PAID" ? "bg-green-100 text-green-700" :
+              order.paymentStatus === "REFUNDED" ? "bg-purple-100 text-purple-700" :
+              "bg-amber-100 text-amber-700"
+            }`}>
               Payment: {order.paymentStatus}
-            </span>
-            <span className="rounded-full bg-indigo-100 px-3 py-1 font-medium text-indigo-700">
-              Shipment: {order.shipmentStatus.replace(/_/g, " ")}
             </span>
           </div>
 
-          {order.orderStatus === "CANCELLED" && order.cancelReason && (
-            <p className="mt-3 text-sm text-gray-500">
-              Cancellation reason: {order.cancelReason}
-            </p>
-          )}
-          {order.orderStatus === "RETURNED" && order.returnReason && (
-            <p className="mt-3 text-sm text-gray-500">
-              Return reason: {order.returnReason}
-            </p>
-          )}
           {returnWindowExpired && (
             <p className="mt-3 text-xs text-gray-400">
-              The {RETURN_WINDOW_DAYS}-day return window for this order has
-              passed.
+              The {RETURN_WINDOW_DAYS}-day return window for this order has passed.
             </p>
           )}
 
@@ -211,10 +315,7 @@ export default function OrderDetailPage() {
                   {isSubmitting ? "Cancelling..." : "Confirm Cancel"}
                 </button>
                 <button
-                  onClick={() => {
-                    setShowCancelForm(false);
-                    setReason("");
-                  }}
+                  onClick={() => { setShowCancelForm(false); setReason(""); }}
                   className="rounded-lg border px-3 py-1.5 text-sm"
                 >
                   Back
@@ -244,10 +345,7 @@ export default function OrderDetailPage() {
                   {isSubmitting ? "Submitting..." : "Submit Return"}
                 </button>
                 <button
-                  onClick={() => {
-                    setShowReturnForm(false);
-                    setReason("");
-                  }}
+                  onClick={() => { setShowReturnForm(false); setReason(""); }}
                   className="rounded-lg border px-3 py-1.5 text-sm"
                 >
                   Back
