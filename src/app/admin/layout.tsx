@@ -1,4 +1,4 @@
-import AdminTopNav from "@/components/admin/AdminTopNav";
+import AdminSidebar from "@/components/admin/AdminSidebar";
 
 export default function AdminLayout({
   children,
@@ -6,9 +6,12 @@ export default function AdminLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
-      <AdminTopNav />
-      {children}
-    </>
+    <div className="min-h-screen bg-gray-50">
+      <AdminSidebar />
+      {/* offset for fixed sidebar (desktop) and fixed top header */}
+      <div className="lg:pl-56 pt-14">
+        {children}
+      </div>
+    </div>
   );
 }
