@@ -6,10 +6,48 @@ import Image from "next/image";
 import { toast } from "sonner";
 import { OrderData, OrderStatus } from "@/types/order";
 import { formatCurrency } from "@/lib/utils/currency";
+import { getPrepaidAmount, PREPAID_DISCOUNT } from "@/lib/utils/discount";
 import Loader from "@/components/ui/Loader";
 
 const RETURN_WINDOW_DAYS = 3;
 const CANCELLABLE_STATUSES = ["PENDING", "CONFIRMED", "PROCESSING"];
+
+const CANCEL_REASONS = [
+  "I want to change the delivery address",
+  "I want to change the payment method",
+  "I ordered by mistake / duplicate order",
+  "I found a better price elsewhere",
+  "Expected delivery time is too long",
+  "Item is no longer needed",
+  "Other",
+];
+
+const RETURN_REASONS = [
+  "Product was damaged or defective",
+  "Wrong product delivered",
+  "Product not as described",
+  "Missing parts or accessories",
+  "I changed my mind",
+  "Other",
+];
+
+declare global {
+  interface Window {
+    Razorpay: new (options: Record<string, unknown>) => { open: () => void };
+  }
+}
+
+function loadRazorpayScript(): Promise<boolean> {
+  return new Promise((resolve) => {
+    if (typeof window === "undefined") return resolve(false);
+    if (window.Razorpay) return resolve(true);
+    const script = document.createElement("script");
+    script.src = "https://checkout.razorpay.com/v1/checkout.js";
+    script.onload = () => resolve(true);
+    script.onerror = () => resolve(false);
+    document.body.appendChild(script);
+  });
+}
 
 export default function OrderDetailPage() {
   const params = useParams<{ id: string }>();
@@ -19,19 +57,20 @@ export default function OrderDetailPage() {
 
   const [showCancelForm, setShowCancelForm] = useState(false);
   const [showReturnForm, setShowReturnForm] = useState(false);
-  const [reason, setReason] = useState("");
+  const [cancelReason, setCancelReason] = useState(CANCEL_REASONS[0]);
+  const [cancelOther, setCancelOther] = useState("");
+  const [returnReason, setReturnReason] = useState(RETURN_REASONS[0]);
+  const [returnOther, setReturnOther] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPayingNow, setIsPayingNow] = useState(false);
 
   function load() {
     setIsLoading(true);
     fetch(`/api/orders/${params.id}`)
-      .then((res) => res.json())
+      .then((r) => r.json())
       .then((json) => {
-        if (json.success) {
-          setOrder(json.data);
-        } else {
-          setNotFound(true);
-        }
+        if (json.success) setOrder(json.data);
+        else setNotFound(true);
       })
       .catch(() => setNotFound(true))
       .finally(() => setIsLoading(false));
@@ -43,21 +82,18 @@ export default function OrderDetailPage() {
   }, [params.id]);
 
   async function handleCancel() {
+    const finalReason = cancelReason === "Other" ? cancelOther.trim() : cancelReason;
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/orders/${params.id}/cancel`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() || undefined }),
+        body: JSON.stringify({ reason: finalReason || undefined }),
       });
       const json = await res.json();
-      if (!json.success) {
-        toast.error(json.message ?? "Unable to cancel order.");
-        return;
-      }
+      if (!json.success) { toast.error(json.message ?? "Unable to cancel order."); return; }
       setOrder(json.data);
       setShowCancelForm(false);
-      setReason("");
       toast.success("Order cancelled.");
     } finally {
       setIsSubmitting(false);
@@ -65,63 +101,98 @@ export default function OrderDetailPage() {
   }
 
   async function handleReturn() {
-    if (!reason.trim()) {
-      toast.error("Please tell us why you're returning this order.");
-      return;
-    }
+    const finalReason = returnReason === "Other" ? returnOther.trim() : returnReason;
+    if (!finalReason) { toast.error("Please select a return reason."); return; }
     setIsSubmitting(true);
     try {
       const res = await fetch(`/api/orders/${params.id}/return`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ reason: reason.trim() }),
+        body: JSON.stringify({ reason: finalReason }),
       });
       const json = await res.json();
-      if (!json.success) {
-        toast.error(json.message ?? "Unable to request return.");
-        return;
-      }
+      if (!json.success) { toast.error(json.message ?? "Unable to request return."); return; }
       setOrder(json.data);
       setShowReturnForm(false);
-      setReason("");
       toast.success("Return requested. We'll be in touch shortly.");
     } finally {
       setIsSubmitting(false);
     }
   }
 
-  if (isLoading) {
-    return (
-      <main className="min-h-screen bg-gray-50 p-6">
-        <Loader size="lg" />
-      </main>
-    );
+  async function handlePayNow() {
+    if (!order) return;
+    setIsPayingNow(true);
+    try {
+      const scriptLoaded = await loadRazorpayScript();
+      if (!scriptLoaded) { toast.error("Couldn't load Razorpay. Check your connection."); return; }
+
+      // Create a Razorpay order for the pending payment amount
+      const amountPaise = Math.round(
+        getPrepaidAmount(Number(order.totalAmount)) * 100
+      );
+      const orderRes = await fetch("/api/payments/razorpay/create-order-for-existing", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderId: order.id, amount: amountPaise }),
+      });
+      const orderJson = await orderRes.json();
+      if (!orderJson.success) { toast.error(orderJson.message ?? "Unable to start payment."); return; }
+
+      const { rzpOrderId, amount, currency, keyId } = orderJson.data;
+
+      const razorpay = new window.Razorpay({
+        key: keyId,
+        amount,
+        currency,
+        order_id: rzpOrderId,
+        name: "Shopka",
+        description: `Order #${order.invoiceNumber}`,
+        image: "/brand/logo-128.png",
+        theme: { color: "#d6266f" },
+        handler: async (response: {
+          razorpay_order_id: string;
+          razorpay_payment_id: string;
+          razorpay_signature: string;
+        }) => {
+          const verifyRes = await fetch(`/api/orders/${params.id}/pay-now`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              razorpayOrderId: response.razorpay_order_id,
+              razorpayPaymentId: response.razorpay_payment_id,
+              razorpaySignature: response.razorpay_signature,
+            }),
+          });
+          const verifyJson = await verifyRes.json();
+          if (verifyJson.success) {
+            setOrder(verifyJson.data);
+            toast.success("Payment successful! 🎉");
+          } else {
+            toast.error(verifyJson.message ?? "Payment verification failed.");
+          }
+        },
+        modal: { ondismiss: () => setIsPayingNow(false) },
+      });
+      razorpay.open();
+    } catch {
+      toast.error("Unable to start payment. Please try again.");
+      setIsPayingNow(false);
+    }
   }
 
+  if (isLoading) return <main className="min-h-screen bg-gray-50 p-6"><Loader size="lg" /></main>;
   if (notFound || !order) {
-    return (
-      <main className="flex min-h-screen items-center justify-center bg-gray-50 p-6 text-center">
-        <p className="text-lg text-gray-600">Order not found.</p>
-      </main>
-    );
+    return <main className="flex min-h-screen items-center justify-center bg-gray-50 p-6 text-center"><p className="text-lg text-gray-600">Order not found.</p></main>;
   }
 
   const canCancel = CANCELLABLE_STATUSES.includes(order.orderStatus);
-
   const daysSinceDelivery = order.deliveredAt
-    ? (Date.now() - new Date(order.deliveredAt).getTime()) /
-      (1000 * 60 * 60 * 24)
+    ? (Date.now() - new Date(order.deliveredAt).getTime()) / (1000 * 60 * 60 * 24)
     : null;
-
-  const canReturn =
-    order.orderStatus === "DELIVERED" &&
-    daysSinceDelivery !== null &&
-    daysSinceDelivery <= RETURN_WINDOW_DAYS;
-
-  const returnWindowExpired =
-    order.orderStatus === "DELIVERED" &&
-    daysSinceDelivery !== null &&
-    daysSinceDelivery > RETURN_WINDOW_DAYS;
+  const canReturn = order.orderStatus === "DELIVERED" && daysSinceDelivery !== null && daysSinceDelivery <= RETURN_WINDOW_DAYS;
+  const returnWindowExpired = order.orderStatus === "DELIVERED" && daysSinceDelivery !== null && daysSinceDelivery > RETURN_WINDOW_DAYS;
+  const prepaidSaving = Number(order.totalAmount) - getPrepaidAmount(Number(order.totalAmount));
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
@@ -131,123 +202,72 @@ export default function OrderDetailPage() {
         </h1>
         <p className="mb-6 text-sm text-gray-500">
           Placed on{" "}
-          {new Date(order.placedAt).toLocaleDateString("en-IN", {
-            day: "numeric",
-            month: "long",
-            year: "numeric",
-          })}
+          {new Date(order.placedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
         </p>
 
+        {/* ── Order Status card ── */}
         <div className="mb-4 rounded-xl border bg-white p-5">
           <h2 className="mb-4 font-semibold text-gray-800">Order Status</h2>
 
-          {/* ── Cancelled / Returned banner ── */}
-          {(order.orderStatus === "CANCELLED" || order.orderStatus === "RETURNED" || order.orderStatus === "REFUNDED") ? (
-            <div className="rounded-lg bg-red-50 border border-red-200 p-4 text-sm text-red-700 mb-4">
-              <div className="font-semibold mb-1">
+          {/* Cancelled / Returned banner */}
+          {(order.orderStatus === "CANCELLED" || order.orderStatus === "RETURNED" || order.orderStatus === "REFUNDED") && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              <div className="mb-1 font-semibold">
                 {order.orderStatus === "CANCELLED" ? "Order Cancelled" :
                  order.orderStatus === "RETURNED" ? "Return Requested" : "Order Refunded"}
               </div>
               {order.cancelReason && <p>Reason: {order.cancelReason}</p>}
               {order.returnReason && <p>Reason: {order.returnReason}</p>}
               {order.returnRequestedAt && (
-                <p className="text-xs text-red-500 mt-1">
+                <p className="mt-1 text-xs text-red-500">
                   {new Date(order.returnRequestedAt).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}
                 </p>
               )}
             </div>
-          ) : null}
+          )}
 
-          {/* ── Timeline ── */}
+          {/* Timeline */}
           {order.orderStatus !== "CANCELLED" && order.orderStatus !== "REFUNDED" && (() => {
             const STATUS_ORDER: OrderStatus[] = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"];
             const currentIdx = STATUS_ORDER.indexOf(order.orderStatus);
-
             const steps = [
-              {
-                label: "Order Placed",
-                subLabel: "Your order has been placed.",
-                status: "PENDING" as OrderStatus,
-                date: order.placedAt,
-              },
-              {
-                label: "Order Confirmed",
-                subLabel: "Seller is processing your order.",
-                status: "CONFIRMED" as OrderStatus,
-                date: null,
-              },
-              {
-                label: "Packed & Ready",
-                subLabel: "Item packed and waiting for pickup.",
-                status: "PROCESSING" as OrderStatus,
-                date: null,
-              },
-              {
-                label: "Shipped",
-                subLabel: "Item is on the way.",
-                status: "SHIPPED" as OrderStatus,
-                date: null,
-              },
-              {
-                label: "Out for Delivery",
-                subLabel: "Item is out for delivery today.",
-                status: "OUT_FOR_DELIVERY" as OrderStatus,
-                date: null,
-              },
-              {
-                label: "Delivered",
-                subLabel: "Item delivered successfully.",
-                status: "DELIVERED" as OrderStatus,
-                date: order.deliveredAt,
-              },
+              { label: "Order Placed",      subLabel: "Your order has been placed.",          status: "PENDING" as OrderStatus,           date: order.placedAt },
+              { label: "Order Confirmed",   subLabel: "Seller is processing your order.",     status: "CONFIRMED" as OrderStatus,         date: null },
+              { label: "Packed & Ready",    subLabel: "Item packed and waiting for pickup.",  status: "PROCESSING" as OrderStatus,        date: null },
+              { label: "Shipped",           subLabel: "Item is on the way.",                  status: "SHIPPED" as OrderStatus,           date: null },
+              { label: "Out for Delivery",  subLabel: "Item is out for delivery today.",      status: "OUT_FOR_DELIVERY" as OrderStatus,  date: null },
+              { label: "Delivered",         subLabel: "Item delivered successfully.",         status: "DELIVERED" as OrderStatus,         date: order.deliveredAt },
             ];
-
             return (
               <div className="space-y-0">
                 {steps.map((step, idx) => {
                   const stepIdx = STATUS_ORDER.indexOf(step.status);
                   const isDone = currentIdx >= stepIdx;
-                  const isActive = currentIdx === stepIdx;
                   const isLast = idx === steps.length - 1;
-
                   return (
                     <div key={step.status} className="flex gap-4">
-                      {/* Dot + line */}
                       <div className="flex flex-col items-center">
-                        <div className={`relative z-10 flex h-5 w-5 items-center justify-center rounded-full border-2 flex-shrink-0 mt-0.5 ${
-                          isDone
-                            ? "border-green-500 bg-green-500"
-                            : "border-gray-300 bg-white"
-                        }`}>
+                        <div className={`relative z-10 mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2 ${isDone ? "border-green-500 bg-green-500" : "border-gray-300 bg-white"}`}>
                           {isDone && (
                             <svg className="h-3 w-3 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
                               <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                             </svg>
                           )}
-                          {isActive && !isDone && (
-                            <div className="h-2 w-2 rounded-full bg-brand animate-pulse" />
-                          )}
                         </div>
-                        {!isLast && (
-                          <div className={`w-0.5 flex-1 my-1 ${isDone ? "bg-green-400" : "bg-gray-200"}`} style={{ minHeight: 28 }} />
-                        )}
+                        {!isLast && <div className={`my-1 w-0.5 flex-1 ${isDone ? "bg-green-400" : "bg-gray-200"}`} style={{ minHeight: 28 }} />}
                       </div>
-
-                      {/* Content */}
-                      <div className={`pb-5 min-w-0 ${isLast ? "pb-0" : ""}`}>
+                      <div className={`min-w-0 pb-5 ${isLast ? "pb-0" : ""}`}>
                         <div className={`text-sm font-semibold ${isDone ? "text-gray-900" : "text-gray-400"}`}>
                           {step.label}
                           {step.date && isDone && (
-                            <span className={`ml-2 font-normal text-xs ${isDone ? "text-gray-500" : "text-gray-300"}`}>
+                            <span className="ml-2 text-xs font-normal text-gray-500">
                               {new Date(step.date).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "2-digit" })}
                               {" · "}
                               {new Date(step.date).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
                             </span>
                           )}
                         </div>
-                        <div className={`text-xs mt-0.5 ${isDone ? "text-gray-500" : "text-gray-300"}`}>
-                          {step.subLabel}
-                        </div>
+                        <div className={`mt-0.5 text-xs ${isDone ? "text-gray-500" : "text-gray-300"}`}>{step.subLabel}</div>
                       </div>
                     </div>
                   );
@@ -256,127 +276,140 @@ export default function OrderDetailPage() {
             );
           })()}
 
-          {/* Payment badge */}
-          <div className="mt-4 flex flex-wrap gap-2 border-t pt-4 text-xs">
-            <span className={`rounded-full px-3 py-1 font-medium ${
-              order.paymentStatus === "PAID" ? "bg-green-100 text-green-700" :
-              order.paymentStatus === "REFUNDED" ? "bg-purple-100 text-purple-700" :
-              "bg-amber-100 text-amber-700"
-            }`}>
-              Payment: {order.paymentStatus}
-            </span>
+          {/* Payment section */}
+          <div className="mt-4 border-t pt-4">
+            {order.paymentStatus === "PENDING" && order.orderStatus !== "CANCELLED" ? (
+              <div className="flex flex-wrap items-center gap-3">
+                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
+                  Payment: PENDING
+                </span>
+                <button
+                  onClick={handlePayNow}
+                  disabled={isPayingNow}
+                  className="flex items-center gap-2 rounded-full bg-green-600 px-4 py-1.5 text-sm font-bold text-white shadow transition hover:bg-green-700 disabled:opacity-60"
+                >
+                  {isPayingNow ? "Opening..." : (
+                    <>
+                      💳 Pay Now
+                      {prepaidSaving > 0 && (
+                        <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-semibold">
+                          Save ₹{prepaidSaving}
+                        </span>
+                      )}
+                    </>
+                  )}
+                </button>
+                <p className="w-full text-xs text-gray-400">Pay online to save ₹{PREPAID_DISCOUNT} on this order</p>
+              </div>
+            ) : (
+              <span className={`rounded-full px-3 py-1 text-xs font-medium ${
+                order.paymentStatus === "PAID" ? "bg-green-100 text-green-700" :
+                order.paymentStatus === "REFUNDED" ? "bg-purple-100 text-purple-700" :
+                "bg-amber-100 text-amber-700"
+              }`}>
+                Payment: {order.paymentStatus}
+              </span>
+            )}
           </div>
 
           {returnWindowExpired && (
-            <p className="mt-3 text-xs text-gray-400">
-              The {RETURN_WINDOW_DAYS}-day return window for this order has passed.
-            </p>
+            <p className="mt-3 text-xs text-gray-400">The {RETURN_WINDOW_DAYS}-day return window for this order has passed.</p>
           )}
 
+          {/* Action buttons */}
           {(canCancel || canReturn) && !showCancelForm && !showReturnForm && (
             <div className="mt-4 flex flex-wrap gap-3">
               {canCancel && (
-                <button
-                  onClick={() => setShowCancelForm(true)}
-                  className="rounded-xl border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50"
-                >
+                <button onClick={() => setShowCancelForm(true)} className="rounded-xl border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50">
                   Cancel Order
                 </button>
               )}
               {canReturn && (
-                <button
-                  onClick={() => setShowReturnForm(true)}
-                  className="rounded-xl border-2 border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand-50"
-                >
+                <button onClick={() => setShowReturnForm(true)} className="rounded-xl border-2 border-brand px-4 py-2 text-sm font-semibold text-brand transition hover:bg-brand-50">
                   Return Order
                 </button>
               )}
             </div>
           )}
 
+          {/* Cancel form with dropdown */}
           {showCancelForm && (
-            <div className="mt-4 rounded-lg border bg-gray-50 p-3">
-              <label className="mb-1 block text-xs font-medium text-gray-500">
-                Reason (optional)
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={2}
-                placeholder="Why are you cancelling?"
-                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
-              />
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={handleCancel}
-                  disabled={isSubmitting}
-                  className="rounded-lg bg-red-600 px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                >
+            <div className="mt-4 rounded-lg border bg-gray-50 p-4">
+              <p className="mb-3 text-sm font-semibold text-gray-700">Why are you cancelling?</p>
+              <div className="space-y-2">
+                {CANCEL_REASONS.map((r) => (
+                  <label key={r} className={`flex cursor-pointer items-center gap-3 rounded-lg border bg-white px-3 py-2.5 text-sm transition ${cancelReason === r ? "border-brand bg-brand-50/40" : "border-gray-200"}`}>
+                    <input type="radio" name="cancelReason" checked={cancelReason === r} onChange={() => setCancelReason(r)} className="accent-brand" />
+                    {r}
+                  </label>
+                ))}
+              </div>
+              {cancelReason === "Other" && (
+                <textarea
+                  value={cancelOther}
+                  onChange={(e) => setCancelOther(e.target.value)}
+                  rows={2}
+                  placeholder="Please describe your reason..."
+                  className="mt-3 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              )}
+              <div className="mt-3 flex gap-2">
+                <button onClick={handleCancel} disabled={isSubmitting || (cancelReason === "Other" && !cancelOther.trim())}
+                  className="rounded-lg bg-red-600 px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                   {isSubmitting ? "Cancelling..." : "Confirm Cancel"}
                 </button>
-                <button
-                  onClick={() => { setShowCancelForm(false); setReason(""); }}
-                  className="rounded-lg border px-3 py-1.5 text-sm"
-                >
-                  Back
-                </button>
+                <button onClick={() => setShowCancelForm(false)} className="rounded-lg border px-4 py-2 text-sm">Back</button>
               </div>
             </div>
           )}
 
+          {/* Return form with dropdown */}
           {showReturnForm && (
-            <div className="mt-4 rounded-lg border bg-gray-50 p-3">
-              <label className="mb-1 block text-xs font-medium text-gray-500">
-                Reason for return (required)
-              </label>
-              <textarea
-                value={reason}
-                onChange={(e) => setReason(e.target.value)}
-                rows={2}
-                placeholder="What's wrong with the product?"
-                className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
-              />
-              <div className="mt-2 flex gap-2">
-                <button
-                  onClick={handleReturn}
-                  disabled={isSubmitting}
-                  className="rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50"
-                >
+            <div className="mt-4 rounded-lg border bg-gray-50 p-4">
+              <p className="mb-3 text-sm font-semibold text-gray-700">Why are you returning this item?</p>
+              <div className="space-y-2">
+                {RETURN_REASONS.map((r) => (
+                  <label key={r} className={`flex cursor-pointer items-center gap-3 rounded-lg border bg-white px-3 py-2.5 text-sm transition ${returnReason === r ? "border-brand bg-brand-50/40" : "border-gray-200"}`}>
+                    <input type="radio" name="returnReason" checked={returnReason === r} onChange={() => setReturnReason(r)} className="accent-brand" />
+                    {r}
+                  </label>
+                ))}
+              </div>
+              {returnReason === "Other" && (
+                <textarea
+                  value={returnOther}
+                  onChange={(e) => setReturnOther(e.target.value)}
+                  rows={2}
+                  placeholder="Please describe the issue..."
+                  className="mt-3 w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              )}
+              <div className="mt-3 flex gap-2">
+                <button onClick={handleReturn} disabled={isSubmitting || (returnReason === "Other" && !returnOther.trim())}
+                  className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-50">
                   {isSubmitting ? "Submitting..." : "Submit Return"}
                 </button>
-                <button
-                  onClick={() => { setShowReturnForm(false); setReason(""); }}
-                  className="rounded-lg border px-3 py-1.5 text-sm"
-                >
-                  Back
-                </button>
+                <button onClick={() => setShowReturnForm(false)} className="rounded-lg border px-4 py-2 text-sm">Back</button>
               </div>
             </div>
           )}
         </div>
 
+        {/* Delivery address */}
         <div className="mb-4 rounded-xl border bg-white p-5">
-          <h2 className="mb-3 font-semibold text-gray-800">
-            Delivery Address
-          </h2>
-          <p className="text-sm text-gray-700">
-            {order.address.fullName} · {order.address.phone}
-          </p>
-          <p className="text-sm text-gray-600">
-            {order.address.completeAddress}
-          </p>
+          <h2 className="mb-3 font-semibold text-gray-800">Delivery Address</h2>
+          <p className="text-sm text-gray-700">{order.address.fullName} · {order.address.phone}</p>
+          <p className="text-sm text-gray-600">{order.address.completeAddress}</p>
           {order.address.latitude && order.address.longitude && (
-            <a
-              href={`https://www.google.com/maps?q=${order.address.latitude},${order.address.longitude}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="mt-2 inline-block text-xs font-medium text-brand hover:underline"
-            >
+            <a href={`https://www.google.com/maps?q=${order.address.latitude},${order.address.longitude}`}
+              target="_blank" rel="noopener noreferrer"
+              className="mt-2 inline-block text-xs font-medium text-brand hover:underline">
               View exact drop location on map →
             </a>
           )}
         </div>
 
+        {/* Items */}
         <div className="mb-4 rounded-xl border bg-white p-5">
           <h2 className="mb-3 font-semibold text-gray-800">Items</h2>
           <div className="space-y-3">
@@ -384,52 +417,29 @@ export default function OrderDetailPage() {
               <div key={item.id} className="flex gap-3">
                 {item.productImage && (
                   <div className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg bg-gray-50">
-                    <Image
-                      src={item.productImage}
-                      alt={item.productName}
-                      fill
-                      sizes="56px"
-                      className="object-contain p-1"
-                    />
+                    <Image src={item.productImage} alt={item.productName} fill sizes="56px" className="object-contain p-1" />
                   </div>
                 )}
                 <div className="flex flex-1 justify-between">
                   <div>
-                    <p className="text-sm font-medium text-gray-800">
-                      {item.productName}
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Qty: {item.quantity}
-                    </p>
+                    <p className="text-sm font-medium text-gray-800">{item.productName}</p>
+                    <p className="text-xs text-gray-500">Qty: {item.quantity}</p>
                   </div>
-                  <span className="text-sm font-semibold text-gray-900">
-                    {formatCurrency(item.totalAmount)}
-                  </span>
+                  <span className="text-sm font-semibold text-gray-900">{formatCurrency(item.totalAmount)}</span>
                 </div>
               </div>
             ))}
           </div>
         </div>
 
+        {/* Price details */}
         <div className="rounded-xl border bg-white p-5">
           <h2 className="mb-3 font-semibold text-gray-800">Price Details</h2>
           <div className="space-y-2 text-sm">
-            <div className="flex justify-between text-gray-600">
-              <span>Subtotal</span>
-              <span>{formatCurrency(order.subtotal)}</span>
-            </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Shipping</span>
-              <span>{formatCurrency(order.shippingCharge)}</span>
-            </div>
-            <div className="flex justify-between text-gray-600">
-              <span>Tax</span>
-              <span>{formatCurrency(order.taxAmount)}</span>
-            </div>
-            <div className="flex justify-between border-t pt-2 font-semibold text-gray-900">
-              <span>Total</span>
-              <span>{formatCurrency(order.totalAmount)}</span>
-            </div>
+            <div className="flex justify-between text-gray-600"><span>Subtotal</span><span>{formatCurrency(order.subtotal)}</span></div>
+            <div className="flex justify-between text-gray-600"><span>Shipping</span><span>{formatCurrency(order.shippingCharge)}</span></div>
+            <div className="flex justify-between text-gray-600"><span>Tax</span><span>{formatCurrency(order.taxAmount)}</span></div>
+            <div className="flex justify-between border-t pt-2 font-semibold text-gray-900"><span>Total</span><span>{formatCurrency(order.totalAmount)}</span></div>
           </div>
         </div>
       </div>

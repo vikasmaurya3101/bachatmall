@@ -141,7 +141,7 @@ export class CheckoutService {
           shippingCharge,
           taxAmount: taxTotal,
           totalAmount,
-          orderStatus: "CONFIRMED",
+          orderStatus: paymentMethod === "RAZORPAY" ? "CONFIRMED" : "PENDING",
           paymentStatus: paymentMethod === "RAZORPAY" ? "PAID" : "PENDING",
           shipmentStatus: "PENDING",
           items: { create: orderItemsData },

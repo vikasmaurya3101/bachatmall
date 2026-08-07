@@ -5,11 +5,17 @@ import Link from "next/link";
 import {
   AlertCircle,
   ChevronRight,
+  Copy,
+  Gift,
+  HelpCircle,
   LogOut,
   MapPin,
+  MessageCircle,
   Package,
+  Share2,
   User as UserIcon,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useSession } from "@/providers/SessionProvider";
 import { useAuth } from "@/hooks/useAuth";
 import { AddressData } from "@/types/order";
@@ -20,10 +26,10 @@ export default function ProfilePage() {
   const { user, isAuthenticated, isLoading } = useSession();
   const { logout } = useAuth();
   const [addresses, setAddresses] = useState<AddressData[]>([]);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated) return;
-
     fetch("/api/addresses")
       .then((res) => res.json())
       .then((json) => {
@@ -55,30 +61,52 @@ export default function ProfilePage() {
     );
   }
 
+  const referralCode = `SHOPKA${user.id.slice(0, 6).toUpperCase()}`;
+
+  function copyReferral() {
+    navigator.clipboard.writeText(referralCode).then(() => {
+      setCopied(true);
+      toast.success("Referral code copied!");
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
+
+  function shareReferral() {
+    const text = `Use my code ${referralCode} on Shopka and get a discount on your first order! 🎉\nhttps://shopka.in`;
+    if (typeof navigator !== "undefined" && navigator.share) {
+      navigator.share({ title: "Join Shopka!", text, url: "https://shopka.in" }).catch(() => null);
+    } else {
+      copyReferral();
+    }
+  }
+
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
-      <div className="mx-auto max-w-3xl">
-        <div className="mb-6 flex items-center gap-4 rounded-xl border bg-white p-5">
-          <div className="flex h-14 w-14 items-center justify-center rounded-full bg-brand text-lg font-bold text-white">
+      <div className="mx-auto max-w-xl space-y-4">
+
+        {/* ── User card ── */}
+        <div className="flex items-center gap-4 rounded-2xl border bg-white p-5 shadow-sm">
+          <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-full bg-brand text-xl font-bold text-white">
             {getInitials(user.firstName, user.lastName)}
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-gray-800">
+          <div className="min-w-0 flex-1">
+            <h1 className="text-lg font-bold leading-tight text-gray-900">
               {user.firstName} {user.lastName ?? ""}
             </h1>
             {user.phone && (
               <p className="text-sm text-gray-500">+91 {user.phone}</p>
             )}
             {user.email && (
-              <p className="text-sm text-gray-500">{user.email}</p>
+              <p className="truncate text-sm text-gray-500">{user.email}</p>
             )}
           </div>
         </div>
 
+        {/* ── Add phone nudge ── */}
         {!user.phone && (
           <Link
             href="/add-phone?redirect=/profile"
-            className="mb-6 flex items-center gap-3 rounded-xl border-2 border-brand-100 bg-brand-50/40 p-4 transition hover:bg-brand-50"
+            className="flex items-center gap-3 rounded-xl border-2 border-brand-100 bg-brand-50/40 p-4 transition hover:bg-brand-50"
           >
             <AlertCircle size={20} className="shrink-0 text-brand" />
             <div>
@@ -86,81 +114,207 @@ export default function ProfilePage() {
                 Add your phone number
               </p>
               <p className="text-xs text-gray-500">
-                Needed for order updates and faster login next time.
+                Needed for order updates and faster login.
               </p>
             </div>
           </Link>
         )}
 
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Link
+        {/* ── Quick links ── */}
+        <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+          <NavRow
             href="/orders"
-            className="tap-shrink group flex items-center gap-3 rounded-xl border bg-white p-5 transition hover:shadow-md"
-          >
-            <Package size={22} className="text-brand" />
-            <div className="flex-1">
-              <p className="font-medium text-gray-800">My Orders</p>
-              <p className="text-xs text-gray-500">Track and manage orders</p>
-            </div>
-            <ChevronRight
-              size={18}
-              className="text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-brand"
-            />
-          </Link>
-
-          <Link
+            icon={<Package size={20} className="text-brand" />}
+            title="My Orders"
+            sub="Track, manage and return orders"
+          />
+          <NavRow
             href="/profile/addresses"
-            className="tap-shrink group flex items-center gap-3 rounded-xl border bg-white p-5 transition hover:shadow-md"
-          >
-            <MapPin size={22} className="text-brand" />
-            <div className="flex-1">
-              <p className="font-medium text-gray-800">
-                Saved Addresses ({addresses.length})
-              </p>
-              {addresses.length === 0 ? (
-                <p className="text-xs text-gray-500">
-                  No addresses saved yet — add one now.
-                </p>
-              ) : (
-                <p className="line-clamp-1 text-xs text-gray-500">
-                  {addresses[0].completeAddress}
-                </p>
-              )}
-            </div>
-            <ChevronRight
-              size={18}
-              className="text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-brand"
-            />
-          </Link>
-
+            icon={<MapPin size={20} className="text-brand" />}
+            title={`Saved Addresses${addresses.length ? ` (${addresses.length})` : ""}`}
+            sub={addresses[0]?.completeAddress ?? "No addresses saved yet — add one now"}
+          />
           {(user.role === "SELLER" || user.role === "ADMIN") && (
-            <Link
+            <NavRow
               href="/admin"
-              className="tap-shrink group flex items-center gap-3 rounded-xl border bg-white p-5 transition hover:shadow-md"
-            >
-              <UserIcon size={22} className="text-brand" />
-              <div className="flex-1">
-                <p className="font-medium text-gray-800">
-                  {user.role === "ADMIN" ? "Admin Dashboard" : "Seller Dashboard"}
-                </p>
-                <p className="text-xs text-gray-500">Manage products & orders</p>
-              </div>
-              <ChevronRight
-                size={18}
-                className="text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-brand"
-              />
-            </Link>
+              icon={<UserIcon size={20} className="text-brand" />}
+              title={user.role === "ADMIN" ? "Admin Dashboard" : "Seller Dashboard"}
+              sub="Manage products & orders"
+            />
           )}
+        </div>
 
+        {/* ── Refer & Earn ── */}
+        <div className="rounded-2xl border bg-gradient-to-br from-brand-50 to-white p-5 shadow-sm">
+          <div className="mb-1 flex items-center gap-2">
+            <Gift size={20} className="text-brand" />
+            <h2 className="font-bold text-gray-900">Refer &amp; Earn</h2>
+          </div>
+          <p className="mb-4 text-sm text-gray-500">
+            Share your code with friends. When they place their first order,
+            you both get a surprise reward! 🎁
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 rounded-xl border-2 border-dashed border-brand bg-white py-2.5 px-4 text-center font-mono text-sm font-bold tracking-widest text-brand">
+              {referralCode}
+            </div>
+            <button
+              onClick={copyReferral}
+              className="flex shrink-0 items-center gap-1.5 rounded-xl bg-brand px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-brand-dark active:scale-95"
+            >
+              <Copy size={15} />
+              {copied ? "Copied!" : "Copy"}
+            </button>
+          </div>
           <button
-            onClick={logout}
-            className="tap-shrink flex items-center gap-3 rounded-xl border bg-white p-5 text-left transition hover:shadow-md"
+            onClick={shareReferral}
+            className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-brand py-2.5 text-sm font-semibold text-brand transition hover:bg-brand-50"
           >
-            <LogOut size={22} className="text-red-500" />
-            <p className="font-medium text-gray-800">Logout</p>
+            <Share2 size={15} />
+            Share with friends
           </button>
         </div>
+
+        {/* ── Help & Support ── */}
+        <div className="overflow-hidden rounded-2xl border bg-white shadow-sm">
+          <div className="flex items-center gap-2 border-b px-5 py-3.5">
+            <HelpCircle size={18} className="text-brand" />
+            <span className="font-semibold text-gray-800">Help &amp; Support</span>
+          </div>
+          <NavRow href="/help" title="FAQs &amp; Help Centre" sub="Answers to common questions" />
+          <NavRow href="/contact" title="Contact Us" sub="Email, WhatsApp &amp; more" />
+          <NavRow href="/returns" title="Return Policy" sub="Learn how to return an item" />
+        </div>
+
+        {/* ── Connect on Social ── */}
+        <div className="rounded-2xl border bg-white p-5 shadow-sm">
+          <h2 className="mb-4 font-semibold text-gray-800">Connect on Social</h2>
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+            <SocialBtn
+              href="https://www.instagram.com/shopka.in"
+              label="Instagram"
+              gradient="from-pink-500 to-rose-500"
+              icon={<IgIcon />}
+            />
+            <SocialBtn
+              href="https://www.facebook.com/shopka.in"
+              label="Facebook"
+              gradient="from-blue-600 to-blue-500"
+              icon={<FbIcon />}
+            />
+            <SocialBtn
+              href="https://www.youtube.com/@shopka.in"
+              label="YouTube"
+              gradient="from-red-600 to-red-500"
+              icon={<YtIcon />}
+            />
+            <SocialBtn
+              href="https://wa.me/919999999999"
+              label="WhatsApp"
+              gradient="from-green-500 to-emerald-500"
+              icon={<MessageCircle size={18} />}
+            />
+          </div>
+        </div>
+
+        {/* ── Logout ── */}
+        <button
+          onClick={logout}
+          className="flex w-full items-center gap-3 rounded-2xl border bg-white p-5 text-left shadow-sm transition hover:shadow-md"
+        >
+          <LogOut size={20} className="text-red-500" />
+          <p className="font-semibold text-red-500">Logout</p>
+        </button>
+
+        <p className="pb-4 text-center text-xs text-gray-400">
+          Shopka v1.0 &bull;{" "}
+          <Link href="/terms" className="hover:underline">Terms</Link>{" "}
+          &bull;{" "}
+          <Link href="/about" className="hover:underline">About</Link>
+        </p>
       </div>
     </main>
+  );
+}
+
+function NavRow({
+  href,
+  icon,
+  title,
+  sub,
+}: {
+  href: string;
+  icon?: React.ReactNode;
+  title: string;
+  sub?: string;
+}) {
+  return (
+    <Link
+      href={href}
+      className="tap-shrink group flex items-center gap-3 border-b px-5 py-4 transition last:border-b-0 hover:bg-gray-50"
+    >
+      {icon && <span className="shrink-0">{icon}</span>}
+      <div className="min-w-0 flex-1">
+        <p
+          className="text-sm font-medium text-gray-800"
+          dangerouslySetInnerHTML={{ __html: title }}
+        />
+        {sub && (
+          <p className="mt-0.5 line-clamp-1 text-xs text-gray-500">{sub}</p>
+        )}
+      </div>
+      <ChevronRight
+        size={16}
+        className="shrink-0 text-gray-300 transition group-hover:translate-x-0.5 group-hover:text-brand"
+      />
+    </Link>
+  );
+}
+
+function SocialBtn({
+  href,
+  label,
+  gradient,
+  icon,
+}: {
+  href: string;
+  label: string;
+  gradient: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <a
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      className={`flex flex-col items-center gap-1.5 rounded-xl bg-gradient-to-br ${gradient} p-3 text-white transition hover:opacity-90 active:scale-95`}
+    >
+      {icon}
+      <span className="text-xs font-semibold">{label}</span>
+    </a>
+  );
+}
+
+function IgIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+    </svg>
+  );
+}
+
+function FbIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" />
+    </svg>
+  );
+}
+
+function YtIcon() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" />
+    </svg>
   );
 }

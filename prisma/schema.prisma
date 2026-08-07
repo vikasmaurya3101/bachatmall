@@ -476,6 +476,15 @@ model Notification {
   @@map("notifications")
 }
 
+// Key-value store for site-wide settings editable from the admin panel
+model SiteSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+
+  @@map("site_settings")
+}
+
 enum Role {
   CUSTOMER
   SELLER

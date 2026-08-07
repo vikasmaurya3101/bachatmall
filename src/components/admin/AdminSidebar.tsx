@@ -15,6 +15,7 @@ import {
   Menu,
   X,
   LogOut,
+  Settings,
 } from "lucide-react";
 import { useSession } from "@/providers/SessionProvider";
 
@@ -45,6 +46,7 @@ const NAV_LINKS = [
   { href: "/admin/flash-sale", label: "Flash Sale",   icon: Zap },
   { href: "/admin/banners",    label: "Banners",      icon: ImageIcon },
   { href: "/admin/sections",   label: "Sections",     icon: LayoutGrid },
+  { href: "/admin/settings",   label: "Settings",     icon: Settings },
 ];
 
 export default function AdminSidebar() {
