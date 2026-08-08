@@ -4,9 +4,10 @@ import { ProductCardData } from "@/types/product";
 
 interface ChampionCategoriesProps {
   products: ProductCardData[];
+  sectionTitle?: string;
 }
 
-export default function ChampionCategories({ products }: ChampionCategoriesProps) {
+export default function ChampionCategories({ products, sectionTitle = "Champion Categories" }: ChampionCategoriesProps) {
   const picks = products.slice(0, 3);
   if (picks.length === 0) return null;
 
@@ -15,7 +16,7 @@ export default function ChampionCategories({ products }: ChampionCategoriesProps
       <div className="mx-auto max-w-7xl px-4 sm:px-6">
         <div className="text-center">
           <h2 className="bg-gradient-to-r from-brand via-accent to-brand-dark bg-clip-text text-4xl font-extrabold italic text-transparent drop-shadow-sm sm:text-5xl">
-            Champion Categories
+            {sectionTitle}
           </h2>
           <div className="mx-auto mt-3 h-0.5 w-40 bg-gradient-to-r from-transparent via-gold to-transparent" />
         </div>

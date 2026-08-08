@@ -18,6 +18,7 @@ import { CategoryData } from "@/types/product";
 
 interface CategoryGridProps {
   categories: CategoryData[];
+  sectionTitle?: string;
 }
 
 const ICONS: Record<string, LucideIcon> = {
@@ -42,13 +43,13 @@ const GRADIENTS = [
   "from-brand-400 to-accent",
 ];
 
-export default function CategoryGrid({ categories }: CategoryGridProps) {
+export default function CategoryGrid({ categories, sectionTitle = "Top Categories" }: CategoryGridProps) {
   if (categories.length === 0) return null;
 
   return (
     <section className="mx-auto max-w-7xl px-4 py-10 sm:px-6">
       <h2 className="text-2xl font-bold text-gray-800 sm:text-3xl">
-        Top Categories
+        {sectionTitle}
       </h2>
 
       <div className="mt-6 flex gap-4 overflow-x-auto pb-2 sm:grid sm:grid-cols-4 sm:overflow-visible lg:grid-cols-8">

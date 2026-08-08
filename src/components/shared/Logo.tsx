@@ -6,6 +6,7 @@ interface LogoProps {
   size?: number;
   showText?: boolean;
   className?: string;
+  logoUrl?: string;
 }
 
 /**
@@ -18,6 +19,7 @@ export default function Logo({
   size = 40,
   showText = true,
   className = "",
+  logoUrl = "/brand/logo-128.png",
 }: LogoProps) {
   const content = (
     <span className={`group inline-flex items-center gap-2.5 ${className}`}>
@@ -26,7 +28,7 @@ export default function Logo({
         style={{ width: size, height: size }}
       >
         <Image
-          src="/brand/logo-128.png"
+          src={logoUrl}
           alt="Shopka"
           fill
           sizes={`${size}px`}

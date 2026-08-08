@@ -24,7 +24,7 @@ import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/hooks/useAuth";
 import Logo from "@/components/shared/Logo";
 
-export default function Navbar() {
+export default function Navbar({ logoUrl = "/brand/logo-128.png" }: { logoUrl?: string }) {
   const router = useRouter();
   const { user, isAuthenticated } = useSession();
   const { itemCount } = useCart();
@@ -52,7 +52,7 @@ export default function Navbar() {
     <>
       <header className="sticky top-0 z-50 border-b bg-white/95 shadow-sm backdrop-blur">
         <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-          <Logo size={38} />
+          <Logo size={38} logoUrl={logoUrl} />
 
           <form
             onSubmit={handleSearch}

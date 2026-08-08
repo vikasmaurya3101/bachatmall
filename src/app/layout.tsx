@@ -1,11 +1,26 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { unstable_cache } from "next/cache";
 import "./globals.css";
 import AuthProvider from "@/providers/AuthProvider";
 import ThemeProvider from "@/providers/ThemeProvider";
 import ToastProvider from "@/providers/ToastProvider";
 import Navbar from "@/components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import { prisma } from "@/lib/prisma";
+
+const getLogoUrl = unstable_cache(
+  async () => {
+    try {
+      const s = await prisma.siteSetting.findUnique({ where: { key: "logo_url" } });
+      return s?.value || "/brand/logo-128.png";
+    } catch {
+      return "/brand/logo-128.png";
+    }
+  },
+  ["site-logo-url"],
+  { revalidate: 60 }
+);
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,11 +61,12 @@ export const viewport = {
   themeColor: "#160a2e",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const logoUrl = await getLogoUrl();
   return (
     <html
       lang="en"
@@ -60,7 +76,7 @@ export default function RootLayout({
         <ThemeProvider>
           <AuthProvider>
             <ToastProvider>
-              <Navbar />
+              <Navbar logoUrl={logoUrl} />
               <main className="flex-1">{children}</main>
               <Footer />
             </ToastProvider>

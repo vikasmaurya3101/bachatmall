@@ -3,6 +3,7 @@ import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 
 const ALLOWED_KEYS = [
+  // contact
   "contact_email",
   "contact_phone",
   "whatsapp_number",
@@ -11,6 +12,16 @@ const ALLOWED_KEYS = [
   "youtube_url",
   "twitter_url",
   "address",
+  // branding
+  "logo_url",
+  // hero banner
+  "hero_badge",
+  "hero_title",
+  "hero_subtitle",
+  "hero_cta",
+  // section titles
+  "champion_section_title",
+  "top_categories_title",
 ] as const;
 
 type SettingKey = (typeof ALLOWED_KEYS)[number];
