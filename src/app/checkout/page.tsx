@@ -60,7 +60,7 @@ export default function CheckoutPage() {
   const [step, setStep] = useState<"review" | "payment">("review");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState<"COD" | "RAZORPAY">(
-    "COD"
+    "RAZORPAY"
   );
   const [editingQtyItemId, setEditingQtyItemId] = useState<string | null>(
     null
@@ -398,6 +398,9 @@ export default function CheckoutPage() {
       </main>
     );
   }
+
+  // Check if all products in cart allow COD
+  const allProductsAllowCOD = items.every((item) => item.product.codAllowed);
 
   const subtotal = items.reduce(
     (sum, item) => sum + Number(item.product.sellingPrice) * item.quantity,
@@ -895,32 +898,6 @@ export default function CheckoutPage() {
                 </p>
 
                 <label
-                  className={`flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
-                    paymentMethod === "COD"
-                      ? "border-brand bg-brand-50"
-                      : "border-gray-200"
-                  }`}
-                >
-                  <input
-                    type="radio"
-                    name="paymentMethod"
-                    checked={paymentMethod === "COD"}
-                    onChange={() => setPaymentMethod("COD")}
-                  />
-                  <span className="w-16 shrink-0 font-semibold text-gray-800">
-                    {formatCurrency(subtotal)}
-                  </span>
-                  <div>
-                    <p className="font-medium text-gray-800">
-                      Cash on Delivery
-                    </p>
-                    <p className="text-xs text-gray-500">
-                      Pay when your order arrives
-                    </p>
-                  </div>
-                </label>
-
-                <label
                   className={`mt-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
                     paymentMethod === "RAZORPAY"
                       ? "border-brand bg-brand-50"
@@ -954,6 +931,37 @@ export default function CheckoutPage() {
                       Save {formatCurrency(PREPAID_DISCOUNT)}
                     </span>
                   )}
+                </label>
+
+                <label
+                  className={`mt-2 flex cursor-pointer items-center gap-3 rounded-lg border p-3 text-sm transition ${
+                    !allProductsAllowCOD
+                      ? "cursor-not-allowed opacity-50"
+                      : paymentMethod === "COD"
+                      ? "border-brand bg-brand-50"
+                      : "border-gray-200"
+                  }`}
+                >
+                  <input
+                    type="radio"
+                    name="paymentMethod"
+                    checked={paymentMethod === "COD"}
+                    onChange={() => setPaymentMethod("COD")}
+                    disabled={!allProductsAllowCOD}
+                  />
+                  <span className="w-16 shrink-0 font-semibold text-gray-800">
+                    {formatCurrency(subtotal)}
+                  </span>
+                  <div>
+                    <p className="font-medium text-gray-800">
+                      Cash on Delivery
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {allProductsAllowCOD
+                        ? "Pay when your order arrives"
+                        : "Not available for some products in your cart"}
+                    </p>
+                  </div>
                 </label>
               </div>
             </div>
