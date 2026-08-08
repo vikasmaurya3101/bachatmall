@@ -209,13 +209,38 @@ export default function OrderDetailPage() {
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="mx-auto max-w-3xl">
-        <h1 className="mb-2 text-2xl font-bold text-gray-800 sm:text-3xl">
-          Order #{order.invoiceNumber}
-        </h1>
-        <p className="mb-6 text-sm text-gray-500">
-          Placed on{" "}
-          {new Date(order.placedAt).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
-        </p>
+        {/* Product-first header */}
+        <div className="mb-6 flex items-center gap-4">
+          {order.items[0]?.productImage && (
+            <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl border bg-gray-50">
+              <Image
+                src={order.items[0].productImage}
+                alt={order.items[0].productName}
+                fill
+                sizes="64px"
+                className="object-contain p-1"
+              />
+            </div>
+          )}
+          <div className="min-w-0">
+            <h1 className="text-lg font-bold leading-snug text-gray-900">
+              {order.items[0]?.productName ?? "Your Order"}
+              {order.items.length > 1 && (
+                <span className="ml-1.5 text-sm font-normal text-gray-500">
+                  +{order.items.length - 1} more
+                </span>
+              )}
+            </h1>
+            <p className="mt-0.5 text-xs text-gray-400">
+              #{order.invoiceNumber} · Placed on{" "}
+              {new Date(order.placedAt).toLocaleDateString("en-IN", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+            </p>
+          </div>
+        </div>
 
         {/* ── Order Status card ── */}
         <div className="mb-4 rounded-xl border bg-white p-5">
