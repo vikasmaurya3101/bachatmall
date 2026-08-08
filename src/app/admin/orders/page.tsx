@@ -108,12 +108,40 @@ export default function AdminOrdersPage() {
     );
   }
 
+  const quickFilters = [
+    { key: "ALL", label: "All", color: "" },
+    { key: "PENDING", label: "Pending", color: "text-gray-600" },
+    { key: "CONFIRMED", label: "Confirmed", color: "text-blue-600" },
+    { key: "SHIPPED", label: "Shipped", color: "text-purple-600" },
+    { key: "DELIVERED", label: "Delivered", color: "text-green-600" },
+    { key: "RETURNED", label: "Returns", color: "text-orange-600" },
+    { key: "CANCELLED", label: "Cancelled", color: "text-red-600" },
+    { key: "REFUNDED", label: "Refunded", color: "text-teal-600" },
+  ];
+
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
       <div className="mx-auto max-w-6xl">
         <h1 className="mb-6 text-2xl font-bold text-gray-800 sm:text-3xl">
           Orders
         </h1>
+
+        {/* Quick filter tabs */}
+        <div className="mb-4 flex flex-wrap gap-2">
+          {quickFilters.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setStatus(f.key)}
+              className={`rounded-full px-4 py-1.5 text-sm font-medium transition ${
+                status === f.key
+                  ? "bg-brand text-white"
+                  : "bg-white border hover:border-brand"
+              } ${status !== f.key ? f.color : ""}`}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
 
         <div className="mb-4 flex flex-wrap gap-3">
           <input
@@ -122,17 +150,6 @@ export default function AdminOrdersPage() {
             placeholder="Search invoice #, name, phone, email..."
             className="w-full max-w-sm rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
           />
-          <select
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
-            className="rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
-          >
-            {STATUS_OPTIONS.map((s) => (
-              <option key={s} value={s}>
-                {s === "ALL" ? "All Statuses" : s.replaceAll("_", " ")}
-              </option>
-            ))}
-          </select>
         </div>
 
         <div className="overflow-x-auto rounded-xl border bg-white">

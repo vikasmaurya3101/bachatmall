@@ -146,6 +146,25 @@ export default function AdminOrderDetailPage() {
     }
   }
 
+  async function handleMarkRefunded() {
+    if (!confirm("Mark this order as REFUNDED? This records that the refund was issued to the customer.")) return;
+    setIsSaving(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ orderStatus: "REFUNDED" }),
+      });
+      const json = await res.json();
+      if (!json.success) { toast.error(json.message ?? "Unable to update."); return; }
+      setOrder(json.data);
+      setOrderStatus("REFUNDED");
+      toast.success("Order marked as refunded.");
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
   async function handleCancel() {
     if (
       !confirm(
@@ -207,17 +226,40 @@ export default function AdminOrderDetailPage() {
           <h1 className="text-2xl font-bold text-gray-800 sm:text-3xl">
             Order {order.invoiceNumber}
           </h1>
-          {order.orderStatus !== "CANCELLED" &&
-            order.orderStatus !== "DELIVERED" && (
+          <div className="flex gap-2">
+            {order.orderStatus === "RETURNED" && (
               <button
-                onClick={handleCancel}
+                onClick={handleMarkRefunded}
                 disabled={isSaving}
-                className="rounded-xl border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                className="rounded-xl bg-teal-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-teal-700 disabled:opacity-50"
               >
-                Cancel Order
+                Mark as Refunded
               </button>
             )}
+            {order.orderStatus !== "CANCELLED" &&
+              order.orderStatus !== "DELIVERED" &&
+              order.orderStatus !== "REFUNDED" && (
+                <button
+                  onClick={handleCancel}
+                  disabled={isSaving}
+                  className="rounded-xl border-2 border-red-500 px-4 py-2 text-sm font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                >
+                  Cancel Order
+                </button>
+              )}
+          </div>
         </div>
+
+        {order.orderStatus === "RETURNED" && (
+          <div className="mb-6 rounded-xl border-2 border-orange-300 bg-orange-50 p-4 text-sm">
+            <div className="mb-2 flex items-center gap-2 font-semibold text-orange-800">
+              <span className="text-lg">⚠️</span> Return Requested — Action Required
+            </div>
+            <p className="text-orange-700">
+              Customer has requested a return. Review the reason below and either approve the refund or contact the customer.
+            </p>
+          </div>
+        )}
 
         {order.cancelReason && (
           <div className="mb-6 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">

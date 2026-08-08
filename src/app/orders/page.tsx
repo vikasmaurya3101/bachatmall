@@ -84,7 +84,8 @@ export default function OrdersPage() {
               const extraCount = order.items.length - 1;
               const isPendingPayment =
                 order.paymentStatus === "PENDING" &&
-                order.orderStatus !== "CANCELLED";
+                order.orderStatus !== "CANCELLED" &&
+                order.orderStatus !== "REFUNDED";
 
               return (
                 <Link
