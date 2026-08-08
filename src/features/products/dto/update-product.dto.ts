@@ -107,6 +107,13 @@ export const UpdateProductDto = z.object({
     .boolean()
     .optional(),
 
+  estimatedDeliveryDays: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(90)
+    .optional(),
+
   seoTitle: z
     .string()
     .max(255)

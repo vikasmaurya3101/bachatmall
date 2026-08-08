@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useSession } from "@/providers/SessionProvider";
 import { OrderData } from "@/types/order";
 import { formatCurrency } from "@/lib/utils/currency";
+import { getPrepaidAmount, PREPAID_DISCOUNT } from "@/lib/utils/discount";
 import Loader from "@/components/ui/Loader";
 
 const statusColors: Record<string, string> = {
@@ -67,41 +68,76 @@ export default function OrdersPage() {
           <p className="text-gray-600">You haven&apos;t placed any orders yet.</p>
         ) : (
           <div className="space-y-3">
-            {orders.map((order) => (
-              <Link
-                key={order.id}
-                href={`/orders/${order.id}`}
-                className="flex items-center justify-between rounded-xl border bg-white p-4 transition hover:shadow-md"
-              >
-                <div>
-                  <p className="font-semibold text-gray-800">
-                    #{order.invoiceNumber}
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    {new Date(order.placedAt).toLocaleDateString("en-IN", {
-                      day: "numeric",
-                      month: "short",
-                      year: "numeric",
-                    })}{" "}
-                    · {order.items.length} item(s)
-                  </p>
-                </div>
+            {orders.map((order) => {
+              const isPendingPayment =
+                order.paymentStatus === "PENDING" &&
+                order.orderStatus !== "CANCELLED";
+              const discountedAmount = getPrepaidAmount(Number(order.totalAmount));
 
-                <div className="flex items-center gap-4">
-                  <span className="font-semibold text-gray-900">
-                    {formatCurrency(order.totalAmount)}
-                  </span>
-                  <span
-                    className={`rounded-full px-3 py-1 text-xs font-semibold ${
-                      statusColors[order.orderStatus] ??
-                      "bg-gray-100 text-gray-700"
-                    }`}
-                  >
-                    {order.orderStatus.replace(/_/g, " ")}
-                  </span>
-                </div>
-              </Link>
-            ))}
+              return (
+                <Link
+                  key={order.id}
+                  href={`/orders/${order.id}`}
+                  className="block rounded-xl border bg-white p-4 transition hover:shadow-md"
+                >
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="font-semibold text-gray-800">
+                        #{order.invoiceNumber}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {new Date(order.placedAt).toLocaleDateString("en-IN", {
+                          day: "numeric",
+                          month: "short",
+                          year: "numeric",
+                        })}{" "}
+                        · {order.items.length} item(s)
+                      </p>
+                    </div>
+
+                    <div className="flex flex-col items-end gap-1.5">
+                      {isPendingPayment ? (
+                        <div className="flex items-baseline gap-1.5">
+                          <span className="text-sm text-gray-400 line-through">
+                            {formatCurrency(order.totalAmount)}
+                          </span>
+                          <span className="font-bold text-green-600">
+                            ₹{discountedAmount.toFixed(0)}
+                          </span>
+                          <span className="rounded-full bg-green-100 px-1.5 py-0.5 text-xs font-bold text-green-700">
+                            -₹{PREPAID_DISCOUNT}
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="font-semibold text-gray-900">
+                          {formatCurrency(order.totalAmount)}
+                        </span>
+                      )}
+                      <span
+                        className={`rounded-full px-3 py-1 text-xs font-semibold ${
+                          statusColors[order.orderStatus] ??
+                          "bg-gray-100 text-gray-700"
+                        }`}
+                      >
+                        {order.orderStatus.replace(/_/g, " ")}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Pay Now prompt for pending-payment orders */}
+                  {isPendingPayment && (
+                    <div className="mt-3 flex items-center gap-2 rounded-lg bg-green-50 px-3 py-2">
+                      <span className="text-xs text-green-700">
+                        💳 Pay online &amp; save ₹{PREPAID_DISCOUNT}
+                      </span>
+                      <span className="ml-auto rounded-full bg-green-600 px-3 py-1 text-xs font-bold text-white">
+                        Pay Now
+                      </span>
+                    </div>
+                  )}
+                </Link>
+              );
+            })}
           </div>
         )}
       </div>

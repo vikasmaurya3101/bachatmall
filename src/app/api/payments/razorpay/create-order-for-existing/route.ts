@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/session";
 import { prisma } from "@/lib/prisma";
 import { getRazorpayInstance } from "@/lib/razorpay";
+import { getPrepaidAmount } from "@/lib/utils/discount";
 
 /**
  * Creates a Razorpay order for an existing DB order that still has
@@ -32,7 +33,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ success: false, message: "Order is already paid." }, { status: 400 });
   }
 
-  const amountPaise = Math.round(Number(order.totalAmount) * 100);
+  // Apply prepaid discount: COD totalAmount is full price; online payment gets ₹15 off
+  const amountPaise = Math.round(getPrepaidAmount(Number(order.totalAmount)) * 100);
 
   const razorpay = getRazorpayInstance();
   const rzpOrder = await razorpay.orders.create({

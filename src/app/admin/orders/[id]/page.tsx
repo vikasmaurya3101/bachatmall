@@ -38,6 +38,8 @@ interface OrderDetail {
   cancelReason: string | null;
   returnReason: string | null;
   returnRequestedAt: string | null;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
   address: {
     fullName: string;
     phone: string;
@@ -92,6 +94,8 @@ export default function AdminOrderDetailPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [orderStatus, setOrderStatus] = useState("");
   const [shipmentStatus, setShipmentStatus] = useState("");
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [trackingUrl, setTrackingUrl] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
   const load = useCallback(async () => {
@@ -103,6 +107,8 @@ export default function AdminOrderDetailPage() {
         setOrder(json.data);
         setOrderStatus(json.data.orderStatus);
         setShipmentStatus(json.data.shipmentStatus);
+        setTrackingNumber(json.data.trackingNumber ?? "");
+        setTrackingUrl(json.data.trackingUrl ?? "");
       } else {
         toast.error(json.message ?? "Unable to load order.");
       }
@@ -121,7 +127,12 @@ export default function AdminOrderDetailPage() {
       const res = await fetch(`/api/admin/orders/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ orderStatus, shipmentStatus }),
+        body: JSON.stringify({
+          orderStatus,
+          shipmentStatus,
+          trackingNumber: trackingNumber.trim() || undefined,
+          trackingUrl: trackingUrl.trim() || undefined,
+        }),
       });
       const json = await res.json();
       if (!json.success) {
@@ -395,6 +406,31 @@ export default function AdminOrderDetailPage() {
             >
               {isSaving ? "Saving..." : "Save"}
             </button>
+          </div>
+
+          {/* Tracking */}
+          <div className="mt-4 border-t pt-4">
+            <p className="mb-2 text-xs font-medium text-gray-500 uppercase tracking-wide">Tracking (optional)</p>
+            <div className="flex flex-wrap gap-3">
+              <div className="flex-1 min-w-[180px]">
+                <label className="mb-1 block text-xs text-gray-500">Tracking Number</label>
+                <input
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="e.g. 7645392847"
+                  className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </div>
+              <div className="flex-1 min-w-[240px]">
+                <label className="mb-1 block text-xs text-gray-500">Tracking URL</label>
+                <input
+                  value={trackingUrl}
+                  onChange={(e) => setTrackingUrl(e.target.value)}
+                  placeholder="https://track.delhivery.com/..."
+                  className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>

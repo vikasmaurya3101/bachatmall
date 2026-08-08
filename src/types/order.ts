@@ -58,6 +58,7 @@ export interface OrderItemData {
   sellingPrice: number | string;
   taxAmount: number | string;
   totalAmount: number | string;
+  product?: { estimatedDeliveryDays: number } | null;
 }
 
 export interface PaymentData {
@@ -86,4 +87,6 @@ export interface OrderData {
   cancelReason: string | null;
   returnReason: string | null;
   returnRequestedAt: string | null;
+  trackingNumber?: string | null;
+  trackingUrl?: string | null;
 }

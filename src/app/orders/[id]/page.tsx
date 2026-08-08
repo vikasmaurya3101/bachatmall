@@ -192,7 +192,19 @@ export default function OrderDetailPage() {
     : null;
   const canReturn = order.orderStatus === "DELIVERED" && daysSinceDelivery !== null && daysSinceDelivery <= RETURN_WINDOW_DAYS;
   const returnWindowExpired = order.orderStatus === "DELIVERED" && daysSinceDelivery !== null && daysSinceDelivery > RETURN_WINDOW_DAYS;
-  const prepaidSaving = Number(order.totalAmount) - getPrepaidAmount(Number(order.totalAmount));
+
+  // Estimated delivery: use per-product days if available, default 5–7
+  const maxEstDays = order.items.reduce((max, item) => {
+    const days = item.product?.estimatedDeliveryDays ?? 5;
+    return Math.max(max, days);
+  }, 5);
+  const estFrom = new Date(order.placedAt);
+  estFrom.setDate(estFrom.getDate() + maxEstDays);
+  const estTo = new Date(order.placedAt);
+  estTo.setDate(estTo.getDate() + maxEstDays + 2);
+  const fmtEstDate = (d: Date) =>
+    d.toLocaleDateString("en-IN", { day: "numeric", month: "short" });
+  const estDeliveryLabel = `${fmtEstDate(estFrom)} – ${fmtEstDate(estTo)}`;
 
   return (
     <main className="min-h-screen bg-gray-50 p-4 sm:p-6">
@@ -231,7 +243,7 @@ export default function OrderDetailPage() {
             const STATUS_ORDER: OrderStatus[] = ["PENDING", "CONFIRMED", "PROCESSING", "SHIPPED", "OUT_FOR_DELIVERY", "DELIVERED"];
             const currentIdx = STATUS_ORDER.indexOf(order.orderStatus);
             const steps = [
-              { label: "Order Placed",      subLabel: "Your order has been placed.",          status: "PENDING" as OrderStatus,           date: order.placedAt },
+              { label: "Order Placed",      subLabel: `Your order has been placed. Est. delivery: ${estDeliveryLabel}`,  status: "PENDING" as OrderStatus,           date: order.placedAt },
               { label: "Order Confirmed",   subLabel: "Seller is processing your order.",     status: "CONFIRMED" as OrderStatus,         date: null },
               { label: "Packed & Ready",    subLabel: "Item packed and waiting for pickup.",  status: "PROCESSING" as OrderStatus,        date: null },
               { label: "Shipped",           subLabel: "Item is on the way.",                  status: "SHIPPED" as OrderStatus,           date: null },
@@ -279,37 +291,33 @@ export default function OrderDetailPage() {
           {/* Payment section */}
           <div className="mt-4 border-t pt-4">
             {order.paymentStatus === "PENDING" && order.orderStatus !== "CANCELLED" ? (
-              <div className="flex flex-wrap items-center gap-3">
-                <span className="rounded-full bg-amber-100 px-3 py-1 text-xs font-medium text-amber-700">
-                  Payment: PENDING
-                </span>
+              /* COD order — invite user to pay online and save ₹15 */
+              <div className="flex flex-wrap items-center gap-4">
+                {/* Price with strikethrough */}
+                <div className="flex items-baseline gap-2">
+                  <span className="text-sm text-gray-400 line-through">₹{Number(order.totalAmount).toFixed(0)}</span>
+                  <span className="text-lg font-bold text-green-600">₹{getPrepaidAmount(Number(order.totalAmount)).toFixed(0)}</span>
+                  <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">-₹{PREPAID_DISCOUNT}</span>
+                </div>
+                {/* Pay Now button */}
                 <button
                   onClick={handlePayNow}
                   disabled={isPayingNow}
-                  className="flex items-center gap-2 rounded-full bg-green-600 px-4 py-1.5 text-sm font-bold text-white shadow transition hover:bg-green-700 disabled:opacity-60"
+                  className="flex items-center gap-2 rounded-full bg-green-600 px-5 py-2 text-sm font-bold text-white shadow transition hover:bg-green-700 disabled:opacity-60"
                 >
-                  {isPayingNow ? "Opening..." : (
-                    <>
-                      💳 Pay Now
-                      {prepaidSaving > 0 && (
-                        <span className="rounded-full bg-white/25 px-2 py-0.5 text-xs font-semibold">
-                          Save ₹{prepaidSaving}
-                        </span>
-                      )}
-                    </>
-                  )}
+                  {isPayingNow ? "Opening..." : "💳 Pay Now & Save ₹" + PREPAID_DISCOUNT}
                 </button>
-                <p className="w-full text-xs text-gray-400">Pay online to save ₹{PREPAID_DISCOUNT} on this order</p>
+                <p className="w-full text-xs text-gray-400">Pay online now to save ₹{PREPAID_DISCOUNT} on this order.</p>
               </div>
-            ) : (
-              <span className={`rounded-full px-3 py-1 text-xs font-medium ${
-                order.paymentStatus === "PAID" ? "bg-green-100 text-green-700" :
-                order.paymentStatus === "REFUNDED" ? "bg-purple-100 text-purple-700" :
-                "bg-amber-100 text-amber-700"
-              }`}>
-                Payment: {order.paymentStatus}
+            ) : order.paymentStatus === "PAID" ? (
+              <span className="inline-flex items-center gap-1.5 rounded-full bg-green-100 px-3 py-1 text-xs font-semibold text-green-700">
+                ✓ Paid
               </span>
-            )}
+            ) : order.paymentStatus === "REFUNDED" ? (
+              <span className="rounded-full bg-purple-100 px-3 py-1 text-xs font-semibold text-purple-700">
+                Refunded
+              </span>
+            ) : null}
           </div>
 
           {returnWindowExpired && (
@@ -394,6 +402,24 @@ export default function OrderDetailPage() {
             </div>
           )}
         </div>
+
+        {/* Tracking info */}
+        {order.trackingNumber && (
+          <div className="mb-4 rounded-xl border bg-white p-5">
+            <h2 className="mb-2 font-semibold text-gray-800">Shipment Tracking</h2>
+            <p className="text-sm text-gray-600">Tracking #: <span className="font-medium text-gray-900">{order.trackingNumber}</span></p>
+            {order.trackingUrl && (
+              <a
+                href={order.trackingUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="mt-2 inline-block rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white hover:opacity-90"
+              >
+                Track Shipment →
+              </a>
+            )}
+          </div>
+        )}
 
         {/* Delivery address */}
         <div className="mb-4 rounded-xl border bg-white p-5">

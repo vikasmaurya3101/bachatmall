@@ -57,6 +57,7 @@ export default function NewProductPage() {
     sellingPrice: "",
     stock: "10",
     imageUrl: "",
+    estimatedDeliveryDays: "5",
     isPublished: false,
   });
 
@@ -209,6 +210,7 @@ export default function NewProductPage() {
           mrp: Number(form.mrp),
           sellingPrice: Number(form.sellingPrice),
           stock: Number(form.stock),
+          estimatedDeliveryDays: Number(form.estimatedDeliveryDays) || 5,
           isPublished: form.isPublished,
           images: form.imageUrl
             ? [{ url: form.imageUrl, isThumbnail: true, displayOrder: 0 }]
@@ -475,6 +477,23 @@ export default function NewProductPage() {
                 className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
               />
             </div>
+          </div>
+
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">
+              Estimated Delivery Days
+            </label>
+            <input
+              type="number"
+              min={1}
+              max={30}
+              value={form.estimatedDeliveryDays}
+              onChange={(e) => updateField("estimatedDeliveryDays", e.target.value)}
+              className="w-full rounded-lg border px-3 py-2 text-sm outline-none focus:border-brand"
+            />
+            <p className="mt-1 text-xs text-gray-400">
+              Days from order placement to delivery. Shown to customers on the order page.
+            </p>
           </div>
 
           <label className="flex items-center gap-2 text-sm text-gray-700">

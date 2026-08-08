@@ -175,6 +175,7 @@ model Product {
   isNewArrival     Boolean            @default(false)
   isPublished      Boolean            @default(false)
   freeShipping     Boolean            @default(false)
+  estimatedDeliveryDays Int           @default(5)
   searchKeywords   String?
   seoTitle         String?
   seoDescription   String?
@@ -399,6 +400,8 @@ model Order {
   cancelReason      String?
   returnReason      String?
   returnRequestedAt DateTime?
+  trackingNumber    String?
+  trackingUrl       String?
   items          OrderItem[]
   address        Address        @relation(fields: [addressId], references: [id])
   coupon         Coupon?        @relation(fields: [couponId], references: [id])
