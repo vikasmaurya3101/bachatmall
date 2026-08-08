@@ -1,8 +1,9 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { motion, type Variants } from "framer-motion";
-import { ShoppingBag, Sparkles, Star, Zap } from "lucide-react";
+import { ShieldCheck, Sparkles, Star, Truck, Zap } from "lucide-react";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 18 },
@@ -18,6 +19,19 @@ interface HeroProps {
   title?: string;
   subtitle?: string;
   cta?: string;
+  logoUrl?: string;
+  stat1Val?: string;
+  stat1Lbl?: string;
+  stat2Val?: string;
+  stat2Lbl?: string;
+  stat3Val?: string;
+  stat3Lbl?: string;
+  card1Label?: string;
+  card1Value?: string;
+  card2Label?: string;
+  card2Value?: string;
+  card3Label?: string;
+  card3Value?: string;
 }
 
 export default function Hero({
@@ -25,6 +39,19 @@ export default function Hero({
   title    = "Smart Shopping\nStarts Here.",
   subtitle = "Unbeatable prices, handpicked quality, and fast delivery — straight to your door, every single day.",
   cta      = "Shop Now",
+  logoUrl  = "/brand/logo-128.png",
+  stat1Val = "50K+",
+  stat1Lbl = "Products",
+  stat2Val = "2-Day",
+  stat2Lbl = "Delivery",
+  stat3Val = "4.8★",
+  stat3Lbl = "Rating",
+  card1Label = "Flash Deal",
+  card1Value = "Up to 80% off",
+  card2Label = "Free Shipping",
+  card2Value = "On All Orders",
+  card3Label = "Secure Pay",
+  card3Value = "100% Safe",
 }: HeroProps) {
   return (
     <section className="relative overflow-hidden brand-gradient py-10 text-white sm:py-16">
@@ -97,9 +124,9 @@ export default function Hero({
             className="mt-8 flex gap-8"
           >
             {[
-              { val: "50K+",  label: "Products" },
-              { val: "2-Day", label: "Delivery"  },
-              { val: "4.8★",  label: "Rating"    },
+              { val: stat1Val, label: stat1Lbl },
+              { val: stat2Val, label: stat2Lbl },
+              { val: stat3Val, label: stat3Lbl },
             ].map(({ val, label }) => (
               <div key={label}>
                 <p className="text-xl font-extrabold text-gold">{val}</p>
@@ -111,9 +138,16 @@ export default function Hero({
 
         {/* ── Right: floating cards (desktop only) ── */}
         <div className="relative hidden h-72 lg:block">
-          {/* Central circle */}
-          <div className="absolute left-1/2 top-1/2 flex h-44 w-44 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white/20 bg-white/5 backdrop-blur-sm">
-            <ShoppingBag size={64} className="text-white/35" strokeWidth={1.4} />
+          {/* Central circle — logo fills the ring, no white border */}
+          <div className="absolute left-1/2 top-1/2 h-44 w-44 -translate-x-1/2 -translate-y-1/2 overflow-hidden rounded-full border-2 border-white/20">
+            <Image
+              src={logoUrl}
+              alt="Shopka"
+              fill
+              sizes="176px"
+              className="object-cover"
+              priority
+            />
           </div>
 
           {/* Floating card — Flash Deal */}
@@ -124,8 +158,8 @@ export default function Hero({
           >
             <Zap size={20} className="fill-gold text-gold" />
             <div>
-              <p className="text-[11px] text-white/65">Flash Deal</p>
-              <p className="text-sm font-bold text-white">Up to 80% off</p>
+              <p className="text-[11px] text-white/65">{card1Label}</p>
+              <p className="text-sm font-bold text-white">{card1Value}</p>
             </div>
           </motion.div>
 
@@ -135,23 +169,23 @@ export default function Hero({
             transition={{ duration: 4, repeat: Infinity, ease: "easeInOut", delay: 0.6 }}
             className="absolute left-2 top-20 flex items-center gap-2.5 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 shadow-lg backdrop-blur-sm"
           >
-            <ShoppingBag size={20} className="text-white" />
+            <Truck size={20} className="text-white" />
             <div>
-              <p className="text-[11px] text-white/65">Free Shipping</p>
-              <p className="text-sm font-bold text-white">Orders ₹499+</p>
+              <p className="text-[11px] text-white/65">{card2Label}</p>
+              <p className="text-sm font-bold text-white">{card2Value}</p>
             </div>
           </motion.div>
 
-          {/* Floating card — Trusted */}
+          {/* Floating card — Secure Pay */}
           <motion.div
             animate={{ y: [0, -12, 0] }}
             transition={{ duration: 2.9, repeat: Infinity, ease: "easeInOut", delay: 1 }}
             className="absolute right-4 bottom-2 flex items-center gap-2.5 rounded-2xl border border-white/20 bg-white/10 px-4 py-3 shadow-lg backdrop-blur-sm"
           >
-            <Star size={20} className="fill-gold text-gold" />
+            <ShieldCheck size={20} className="fill-gold/20 text-gold" />
             <div>
-              <p className="text-[11px] text-white/65">Trusted by</p>
-              <p className="text-sm font-bold text-white">10K+ customers</p>
+              <p className="text-[11px] text-white/65">{card3Label}</p>
+              <p className="text-sm font-bold text-white">{card3Value}</p>
             </div>
           </motion.div>
         </div>

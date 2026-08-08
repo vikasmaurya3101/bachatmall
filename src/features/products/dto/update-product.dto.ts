@@ -107,6 +107,10 @@ export const UpdateProductDto = z.object({
     .boolean()
     .optional(),
 
+  codAllowed: z
+    .boolean()
+    .optional(),
+
   estimatedDeliveryDays: z.coerce
     .number()
     .int()

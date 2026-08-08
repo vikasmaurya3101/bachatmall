@@ -51,6 +51,7 @@ export default function EditProductPage() {
     estimatedDeliveryDays: "5",
     imageUrl: "",
     isPublished: false,
+    codAllowed: true,
   });
 
   useEffect(() => {
@@ -81,6 +82,7 @@ export default function EditProductPage() {
           estimatedDeliveryDays: String(p.estimatedDeliveryDays ?? 5),
           imageUrl: thumb,
           isPublished: !!p.isPublished,
+          codAllowed: p.codAllowed !== false,
         });
       })
       .finally(() => setIsLoading(false));
@@ -171,6 +173,7 @@ export default function EditProductPage() {
           stock: Number(form.stock),
           estimatedDeliveryDays: Number(form.estimatedDeliveryDays) || 5,
           isPublished: form.isPublished,
+          codAllowed: form.codAllowed,
           images: form.imageUrl
             ? [{ url: form.imageUrl, isThumbnail: true, displayOrder: 0 }]
             : undefined,

@@ -55,6 +55,7 @@ export interface ProductCardData {
   isBestSeller: boolean;
   isNewArrival: boolean;
   freeShipping: boolean;
+  codAllowed: boolean;
   avgRating: number | string;
   totalReviews: number;
   images: ProductImageData[];

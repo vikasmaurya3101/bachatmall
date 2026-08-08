@@ -175,6 +175,7 @@ model Product {
   isNewArrival     Boolean            @default(false)
   isPublished      Boolean            @default(false)
   freeShipping     Boolean            @default(false)
+  codAllowed       Boolean            @default(true)
   estimatedDeliveryDays Int           @default(5)
   searchKeywords   String?
   seoTitle         String?

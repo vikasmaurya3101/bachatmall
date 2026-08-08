@@ -24,7 +24,7 @@ export default function Logo({
   const content = (
     <span className={`group inline-flex items-center gap-2.5 ${className}`}>
       <span
-        className="relative shrink-0 overflow-hidden rounded-[22%] shadow-sm ring-1 ring-black/5 transition-transform duration-300 ease-out group-hover:scale-105 group-hover:rotate-[-3deg]"
+        className="relative shrink-0 overflow-hidden rounded-[22%] transition-transform duration-300 ease-out group-hover:scale-105 group-hover:rotate-[-3deg]"
         style={{ width: size, height: size }}
       >
         <Image
