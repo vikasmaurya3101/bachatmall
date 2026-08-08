@@ -24,9 +24,6 @@ const HERO_KEYS = [
   "hero_title",
   "hero_subtitle",
   "hero_cta",
-  "hero_stat1_val", "hero_stat1_lbl",
-  "hero_stat2_val", "hero_stat2_lbl",
-  "hero_stat3_val", "hero_stat3_lbl",
   "hero_card1_label", "hero_card1_value",
   "hero_card2_label", "hero_card2_value",
   "hero_card3_label", "hero_card3_value",
@@ -72,12 +69,6 @@ export default async function HomePage() {
         subtitle={s["hero_subtitle"]}
         cta={s["hero_cta"]}
         logoUrl={s["logo_url"]}
-        stat1Val={s["hero_stat1_val"]}
-        stat1Lbl={s["hero_stat1_lbl"]}
-        stat2Val={s["hero_stat2_val"]}
-        stat2Lbl={s["hero_stat2_lbl"]}
-        stat3Val={s["hero_stat3_val"]}
-        stat3Lbl={s["hero_stat3_lbl"]}
         card1Label={s["hero_card1_label"]}
         card1Value={s["hero_card1_value"]}
         card2Label={s["hero_card2_label"]}

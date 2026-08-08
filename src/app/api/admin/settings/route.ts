@@ -19,10 +19,6 @@ const ALLOWED_KEYS = [
   "hero_title",
   "hero_subtitle",
   "hero_cta",
-  // hero stats
-  "hero_stat1_val", "hero_stat1_lbl",
-  "hero_stat2_val", "hero_stat2_lbl",
-  "hero_stat3_val", "hero_stat3_lbl",
   // hero floating cards
   "hero_card1_label", "hero_card1_value",
   "hero_card2_label", "hero_card2_value",

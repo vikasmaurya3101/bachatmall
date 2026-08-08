@@ -20,12 +20,6 @@ interface HeroProps {
   subtitle?: string;
   cta?: string;
   logoUrl?: string;
-  stat1Val?: string;
-  stat1Lbl?: string;
-  stat2Val?: string;
-  stat2Lbl?: string;
-  stat3Val?: string;
-  stat3Lbl?: string;
   card1Label?: string;
   card1Value?: string;
   card2Label?: string;
@@ -40,12 +34,6 @@ export default function Hero({
   subtitle = "Unbeatable prices, handpicked quality, and fast delivery — straight to your door, every single day.",
   cta      = "Shop Now",
   logoUrl  = "/brand/logo-128.png",
-  stat1Val = "50K+",
-  stat1Lbl = "Products",
-  stat2Val = "2-Day",
-  stat2Lbl = "Delivery",
-  stat3Val = "4.8★",
-  stat3Lbl = "Rating",
   card1Label = "Flash Deal",
   card1Value = "Up to 80% off",
   card2Label = "Free Shipping",
@@ -113,26 +101,6 @@ export default function Hero({
             >
               Browse All
             </Link>
-          </motion.div>
-
-          {/* Stats strip */}
-          <motion.div
-            initial="hidden"
-            animate="show"
-            custom={0.4}
-            variants={fadeUp}
-            className="mt-8 flex gap-8"
-          >
-            {[
-              { val: stat1Val, label: stat1Lbl },
-              { val: stat2Val, label: stat2Lbl },
-              { val: stat3Val, label: stat3Lbl },
-            ].map(({ val, label }) => (
-              <div key={label}>
-                <p className="text-xl font-extrabold text-gold">{val}</p>
-                <p className="text-xs text-white/70">{label}</p>
-              </div>
-            ))}
           </motion.div>
         </div>
 

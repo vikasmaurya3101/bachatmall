@@ -10,9 +10,6 @@ type SettingKey =
   | "instagram_url" | "facebook_url" | "youtube_url" | "twitter_url" | "address"
   | "logo_url"
   | "hero_badge" | "hero_title" | "hero_subtitle" | "hero_cta"
-  | "hero_stat1_val" | "hero_stat1_lbl"
-  | "hero_stat2_val" | "hero_stat2_lbl"
-  | "hero_stat3_val" | "hero_stat3_lbl"
   | "hero_card1_label" | "hero_card1_value"
   | "hero_card2_label" | "hero_card2_value"
   | "hero_card3_label" | "hero_card3_value"
@@ -141,22 +138,6 @@ export default function AdminSettingsPage() {
               {field("hero_title",   "Headline",                  "Smart Shopping Starts Here.")}
               {field("hero_subtitle","Subheadline",               "Unbeatable prices, handpicked quality, and fast delivery…")}
               {field("hero_cta",     "CTA Button label",          "Shop Now")}
-            </div>
-
-            <h3 className="mb-3 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">Hero Stats (bottom strip)</h3>
-            <div className="grid gap-4 sm:grid-cols-3">
-              <div className="space-y-2">
-                {field("hero_stat1_val", "Stat 1 Value", "50K+")}
-                {field("hero_stat1_lbl", "Stat 1 Label", "Products")}
-              </div>
-              <div className="space-y-2">
-                {field("hero_stat2_val", "Stat 2 Value", "2-Day")}
-                {field("hero_stat2_lbl", "Stat 2 Label", "Delivery")}
-              </div>
-              <div className="space-y-2">
-                {field("hero_stat3_val", "Stat 3 Value", "4.8★")}
-                {field("hero_stat3_lbl", "Stat 3 Label", "Rating")}
-              </div>
             </div>
 
             <h3 className="mb-3 mt-6 text-xs font-semibold uppercase tracking-wide text-gray-500">Floating Cards (desktop only)</h3>
